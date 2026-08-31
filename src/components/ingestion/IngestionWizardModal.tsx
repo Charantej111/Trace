@@ -61,7 +61,7 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
   const [selectedCollectionIndex, setSelectedCollectionIndex] = useState<number>(0);
   const [activeRows, setActiveRows] = useState<RawFeedbackRow[]>([]);
   const [activeHeaders, setActiveHeaders] = useState<string[]>([]);
-  const [mappings, setMappings] = useState<FieldMappingConfig>({});
+  const [mappings, setMappings] = useState<FieldMappingConfig>({} as FieldMappingConfig);
   const [suggestions, setSuggestions] = useState<FieldMatchSuggestion[]>([]);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
 

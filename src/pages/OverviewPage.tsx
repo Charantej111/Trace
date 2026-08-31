@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Flame,
@@ -13,13 +13,38 @@ import {
   Zap,
   CheckCircle2,
   XCircle,
-  Upload
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
+import { useToast } from '@/components/ui/toast';
 import { TelemetryChart } from '@/components/analytics/TelemetryChart';
 
 export function OverviewPage() {
   const { feedbackList, painPoints, opportunities, roadmapItems, decisions, resetToDemoData } = useTraceStore();
+  const { addToast } = useToast();
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleExploreSample = async () => {
+    setIsResetting(true);
+    try {
+      await resetToDemoData();
+      addToast({
+        type: 'info',
+        title: 'Sample Dataset Loaded',
+        description: 'Realistic customer feedback processed and analyzed.'
+      });
+    } catch (err) {
+      console.error('Reset error:', err);
+      addToast({
+        type: 'error',
+        title: 'Loading Failed',
+        description: err instanceof Error ? err.message : 'Failed to load sample dataset.'
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const totalFeedback = feedbackList.length;
   const totalPainPoints = painPoints.length;
@@ -71,19 +96,16 @@ export function OverviewPage() {
           <div className="pt-1 flex items-center justify-center gap-3">
             <Link
               to="/sources"
-              className="px-4 py-1.5 rounded-md bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold text-xs transition-colors shadow-2xs"
+              className="px-4 py-2 rounded-xl bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold text-xs transition-colors shadow-2xs flex items-center gap-1.5"
             >
-              Import Your First Feedback
+              <Upload className="w-3.5 h-3.5" />
+              <span>Import Your First Feedback</span>
             </Link>
-            <button
-              onClick={resetToDemoData}
-              className="px-3 py-1.5 rounded-md bg-slate-100 dark:bg-[#181B22] text-slate-700 dark:text-[#EDEDED] font-semibold text-xs transition-colors border border-transparent dark:border-[#232833]"
-            >
-              Explore Sample Dataset
-            </button>
           </div>
         </div>
       )}
+
+
 
       {/* Handcrafted Split KPI Bar */}
       <div className="p-4 rounded-xl surface-card flex flex-col md:flex-row md:items-center justify-between gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-[#1F232B]">

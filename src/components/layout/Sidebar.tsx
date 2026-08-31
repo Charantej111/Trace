@@ -13,6 +13,7 @@ import {
   Settings
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
+import { getVerifiedAtoms } from '@/lib/evidence-utils';
 
 export function Sidebar() {
   const location = useLocation();
@@ -20,7 +21,7 @@ export function Sidebar() {
   const { feedbackList, opportunities, roadmapItems, decisions } = useTraceStore();
 
   const suggestedOppsCount = opportunities.filter(o => o.status === 'suggested').length;
-  const criticalFeedCount = feedbackList.filter(f => f.atoms?.some(a => a.severity === 'critical')).length;
+  const criticalFeedCount = feedbackList.filter(f => getVerifiedAtoms(f).some(a => a.severity === 'critical')).length;
 
   const navGroups = [
     {
@@ -142,15 +143,19 @@ export function Sidebar() {
           ))}
         </div>
 
-        {/* Footer */}
+        {/* Footer: Profile & Settings */}
         <div className="p-3 border-t border-slate-200/80 dark:border-white/8">
-          <div className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#14171E] transition-colors cursor-pointer">
+          <Link
+            to="/settings/context"
+            title="Profile & Settings"
+            className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#14171E] transition-colors cursor-pointer group"
+          >
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-5 h-5 rounded-full bg-[#1E293B] text-white dark:bg-[#EDEDED] dark:text-[#0B0C0E] flex items-center justify-center font-bold text-[9px] font-mono">
                 PL
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs truncate leading-none">
+                <p className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs truncate leading-none group-hover:text-[#2E8B75] dark:group-hover:text-[#10B981] transition-colors">
                   Product Lead
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-[#64748B] truncate font-mono mt-0.5">
@@ -158,9 +163,10 @@ export function Sidebar() {
                 </p>
               </div>
             </div>
-            <Settings className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 dark:text-[#64748B] dark:hover:text-[#8C92A4]" />
-          </div>
+            <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:text-[#64748B] dark:group-hover:text-[#EDEDED] transition-colors" />
+          </Link>
         </div>
+
       </div>
     </aside>
   );

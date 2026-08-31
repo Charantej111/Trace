@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { Feedback } from '@/types/trace';
-import { X, FileText, User, Calendar, Star, ShieldCheck, Tag, Code, ChevronRight } from 'lucide-react';
+import { X, Code } from 'lucide-react';
 import { AtomHighlighter } from './AtomHighlighter';
+import {
+  getVerifiedAtoms,
+  getCustomerDisplayName,
+  getSegmentDisplayName,
+  formatSourceType,
+  formatEvidenceDate
+} from '@/lib/evidence-utils';
 
 interface FeedbackDetailDrawerProps {
   feedback: Feedback;
@@ -10,6 +17,7 @@ interface FeedbackDetailDrawerProps {
 
 export function FeedbackDetailDrawer({ feedback, onClose }: FeedbackDetailDrawerProps) {
   const [showRawPayload, setShowRawPayload] = useState(false);
+  const verifiedAtoms = getVerifiedAtoms(feedback);
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex justify-end animate-in fade-in duration-200">
@@ -18,7 +26,7 @@ export function FeedbackDetailDrawer({ feedback, onClose }: FeedbackDetailDrawer
         <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-[#334155] pb-4">
           <div className="flex items-center gap-2.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#3B9B85] border border-[#2E8B75]/20">
-              {feedback.sourceType.toUpperCase()}
+              {formatSourceType(feedback.sourceType)}
             </span>
             <span className="font-mono text-[11px] text-slate-400">ID: {feedback.id}</span>
           </div>
@@ -37,8 +45,8 @@ export function FeedbackDetailDrawer({ feedback, onClose }: FeedbackDetailDrawer
             VERBATIM CUSTOMER EVIDENCE
           </span>
           <div className="p-5 rounded-2xl surface-subtle border border-slate-200/80 dark:border-[#334155] shadow-xs">
-            {feedback.atoms && feedback.atoms.length > 0 ? (
-              <AtomHighlighter originalText={feedback.originalText} atoms={feedback.atoms} />
+            {verifiedAtoms.length > 0 ? (
+              <AtomHighlighter originalText={feedback.originalText} atoms={verifiedAtoms} />
             ) : (
               <p className="text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed italic">
                 "{feedback.originalText}"
@@ -48,13 +56,13 @@ export function FeedbackDetailDrawer({ feedback, onClose }: FeedbackDetailDrawer
         </div>
 
         {/* Detected Issues / Atoms */}
-        {feedback.atoms && feedback.atoms.length > 0 && (
-          <div className="space-y-2.5">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-              DETECTED CLAUSE ATOMS ({feedback.atoms.length})
-            </span>
+        <div className="space-y-2.5">
+          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+            VERIFIED ATOMS ({verifiedAtoms.length})
+          </span>
+          {verifiedAtoms.length > 0 ? (
             <div className="space-y-2.5">
-              {feedback.atoms.map((atom) => (
+              {verifiedAtoms.map((atom) => (
                 <div
                   key={atom.id}
                   className="p-4 rounded-xl surface-subtle border border-slate-200/80 dark:border-[#334155] space-y-2"
@@ -75,8 +83,12 @@ export function FeedbackDetailDrawer({ feedback, onClose }: FeedbackDetailDrawer
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="p-4 rounded-xl surface-subtle border border-slate-200/80 dark:border-[#334155] text-slate-400 text-center font-mono">
+              No verified atoms
+            </div>
+          )}
+        </div>
 
         {/* Provenance Metadata Grid */}
         <div className="space-y-2.5">
@@ -88,14 +100,14 @@ export function FeedbackDetailDrawer({ feedback, onClose }: FeedbackDetailDrawer
             <div>
               <span className="text-slate-400 font-mono text-[10px] block">Customer / Account</span>
               <p className="font-bold text-slate-900 dark:text-slate-100 mt-1">
-                {feedback.customerName || 'Anonymous Account'}
+                {getCustomerDisplayName(feedback.customerName)}
               </p>
             </div>
 
             <div>
               <span className="text-slate-400 font-mono text-[10px] block">Segment</span>
               <p className="font-bold text-slate-900 dark:text-slate-100 mt-1">
-                {feedback.customerSegmentName || 'General SMB'}
+                {getSegmentDisplayName(feedback.customerSegmentName)}
               </p>
             </div>
 
@@ -111,9 +123,27 @@ export function FeedbackDetailDrawer({ feedback, onClose }: FeedbackDetailDrawer
             <div>
               <span className="text-slate-400 font-mono text-[10px] block">Submission Date</span>
               <p className="font-mono text-slate-700 dark:text-slate-300 text-[11px] mt-1">
-                {new Date(feedback.sourceCreatedAt || feedback.importedAt).toLocaleDateString()}
+                {formatEvidenceDate(feedback.sourceCreatedAt, feedback.importedAt)}
               </p>
             </div>
+
+            {feedback.externalId && (
+              <div>
+                <span className="text-slate-400 font-mono text-[10px] block">External ID</span>
+                <p className="font-mono text-slate-700 dark:text-slate-300 text-[11px] mt-1">
+                  {feedback.externalId}
+                </p>
+              </div>
+            )}
+
+            {feedback.status && (
+              <div>
+                <span className="text-slate-400 font-mono text-[10px] block">Ingestion Status</span>
+                <p className="font-mono font-semibold uppercase text-[#2E8B75] dark:text-[#10B981] text-[11px] mt-1">
+                  {feedback.status}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -70,12 +70,7 @@ const AVAILABLE_INGESTION_METHODS: IngestionMethod[] = [
 
 export function SourcesPage() {
   const {
-    sources,
-    importJobs,
-    feedbackList,
-    isDemoMode,
-    resetToDemoData,
-    clearWorkspaceData
+    importJobs
   } = useTraceStore();
 
   const [activeModal, setActiveModal] = useState<'none' | 'wizard_csv' | 'wizard_xlsx' | 'wizard_json' | 'paste'>('none');

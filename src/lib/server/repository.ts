@@ -118,6 +118,7 @@ class TraceRepository {
           isFeatureRequest: isRequest,
           underlyingProblemHint: isRequest ? `Customer struggle in: "${clause.trim().slice(0, 45)}..."` : undefined,
           confidence: 'high',
+          verificationStatus: 'verified',
           themeName: isBug ? 'Stability & Error Recovery' : 'Product Usability',
           createdAt: timestamp
         };
@@ -135,9 +136,11 @@ class TraceRepository {
           severity: 'medium',
           isFeatureRequest: false,
           confidence: 'medium',
+          verificationStatus: 'verified',
           createdAt: timestamp
         }
       ];
+
 
       return {
         id: fbId,

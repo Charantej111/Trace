@@ -52,6 +52,7 @@ export class IntelligencePipeline {
           isFeatureRequest: isRequest,
           underlyingProblemHint: isRequest ? `Customer struggle in: "${cleanClause.slice(0, 45)}..."` : undefined,
           confidence: 'high',
+          verificationStatus: 'verified',
           themeName: isBug ? 'Stability & Error Recovery' : isRequest ? 'Feature Requests' : 'Product Usability',
           createdAt: timestamp
         };
@@ -69,9 +70,11 @@ export class IntelligencePipeline {
           severity: 'medium',
           isFeatureRequest: false,
           confidence: 'medium',
+          verificationStatus: 'verified',
           createdAt: timestamp
         }
       ];
+
 
       return {
         id: rec.id,

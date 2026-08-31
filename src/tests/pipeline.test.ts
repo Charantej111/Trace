@@ -1,6 +1,6 @@
 /**
  * Trace Master Architectural Invariants & Resilience Test Suite
- * Validates all 27 locked contracts and the "Kill the AI" test.
+ * Validates all 27 locked contracts, the "Kill the AI" test, and 10 Atom Integrity test suites.
  */
 import { NormalizationEngine } from '../evidence/normalization/engine';
 import { FieldDetector } from '../evidence/normalization/field-detector';
@@ -30,6 +30,14 @@ import { FeedbackRepo } from '../repositories/feedback-repo';
 import { IntelligenceRepo } from '../repositories/intelligence-repo';
 import { DecisionsRepo } from '../repositories/decisions-repo';
 import { Feedback, FeedbackAtom, ProcessingStageType } from '../types/trace';
+import {
+  isVerifiedAtom,
+  getVerifiedAtoms,
+  getCustomerDisplayName,
+  getSegmentDisplayName,
+  formatEvidenceDate,
+  formatSourceType
+} from '../lib/evidence-utils';
 
 export async function runAllTests(): Promise<{ passed: number; failed: number; log: string[] }> {
   const log: string[] = [];
@@ -86,9 +94,181 @@ export async function runAllTests(): Promise<{ passed: number; failed: number; l
   const atoms = await SubstringAtomizer.atomizeFeedback(testFb);
   assert(atoms.length >= 1, 'Atomizer: Produced extracted clauses');
   for (const atom of atoms) {
-    const verified = ProvenanceVerifier.verifyAtomProvenance(atom, testFb);
+    const verified = isVerifiedAtom(testFb, atom);
     assert(verified, `Atom Invariant: slice(${atom.sourceStart}, ${atom.sourceEnd}) === "${atom.atomText}"`);
   }
+
+  // --- ATOM INTEGRITY & INBOX TEST SUITE (TESTS 1 - 10) ---
+  log.push('--- RUNNING ATOM INTEGRITY & INBOX CONTRACT TESTS ---');
+
+  // Test 1: Valid atom
+  const t1Fb: Feedback = {
+    id: 'fb-t1',
+    workspaceId: 'ws-atom-tests',
+    sourceType: 'csv',
+    originalText: 'The export is very slow.',
+    analysisText: 'The export is very slow.',
+    sourceCreatedAt: new Date().toISOString(),
+    importedAt: new Date().toISOString(),
+    fingerprint: 'fp-t1'
+  };
+  const t1Atom: FeedbackAtom = {
+    id: 'atom-t1-1',
+    workspaceId: 'ws-atom-tests',
+    feedbackId: 'fb-t1',
+    atomText: 'The export is very slow.',
+    sourceStart: 0,
+    sourceEnd: 24,
+    intent: 'bug_report',
+    sentiment: 'negative',
+    severity: 'medium',
+    isFeatureRequest: false,
+    confidence: 'high',
+    verificationStatus: 'verified',
+    pipelineVersion: '1.0.0',
+    model: 'gpt-4o',
+    promptVersion: '1.0.0',
+    createdAt: new Date().toISOString()
+  };
+  assert(isVerifiedAtom(t1Fb, t1Atom) === true, 'Test 1 (Valid atom): verificationStatus === verified and exact substring matches');
+
+  // Test 2: Wrong offset
+  const t2AtomWrongOffset: FeedbackAtom = {
+    ...t1Atom,
+    id: 'atom-t2-wrong',
+    sourceStart: 5,
+    sourceEnd: 20 // originalText.slice(5, 20) !== "The export is very slow."
+  };
+  assert(isVerifiedAtom(t1Fb, t2AtomWrongOffset) === false, 'Test 2 (Wrong offset): rejected when slice does not match atomText');
+
+  // Test 3: Duplicate AI atoms (Two identical proposals with the same span)
+  await FeedbackRepo.clearWorkspace('ws-atom-tests');
+  await FeedbackRepo.saveCanonicalFeedback([{
+    id: 'fb-t3',
+    workspaceId: 'ws-atom-tests',
+    sourceId: 'src-t3',
+    importId: 'imp-t3',
+    sourceType: 'csv',
+    originalText: 'The dashboard is slow and sometimes crashes.',
+    analysisText: 'The dashboard is slow and sometimes crashes.',
+    sourceTimestamp: new Date().toISOString(),
+    ingestionTimestamp: new Date().toISOString(),
+    normalizedMetadata: {},
+    rawPayload: {},
+    fingerprint: 'fp-t3',
+    status: 'valid'
+  }]);
+
+  const t3Atom1: FeedbackAtom = {
+    ...t1Atom,
+    id: 'atom-t3-1',
+    feedbackId: 'fb-t3',
+    atomText: 'dashboard is slow',
+    sourceStart: 4,
+    sourceEnd: 21,
+    verificationStatus: 'verified'
+  };
+  const t3Atom2: FeedbackAtom = {
+    ...t1Atom,
+    id: 'atom-t3-2',
+    feedbackId: 'fb-t3',
+    atomText: 'dashboard is slow',
+    sourceStart: 4,
+    sourceEnd: 21,
+    verificationStatus: 'verified'
+  };
+
+  await FeedbackRepo.saveAtoms([t3Atom1, t3Atom2]);
+  const fbT3WithAtoms = await FeedbackRepo.getFeedbackById('fb-t3');
+  const verifiedT3 = getVerifiedAtoms(fbT3WithAtoms);
+  assert(verifiedT3.length === 1, 'Test 3 (Duplicate AI atoms): Only 1 persisted atom for identical source span 4:21');
+
+  // Test 4: Same text, different location (both may exist)
+  const t4Canonical = {
+    id: 'fb-t4',
+    workspaceId: 'ws-atom-tests',
+    sourceId: 'src-t4',
+    importId: 'imp-t4',
+    sourceType: 'csv' as const,
+    originalText: 'very slow export process and very slow queries',
+    analysisText: 'very slow export process and very slow queries',
+    sourceTimestamp: new Date().toISOString(),
+    ingestionTimestamp: new Date().toISOString(),
+    normalizedMetadata: {},
+    rawPayload: {},
+    fingerprint: 'fp-t4',
+    status: 'valid' as const
+  };
+  await FeedbackRepo.saveCanonicalFeedback([t4Canonical]);
+  const t4AtomA: FeedbackAtom = {
+    ...t1Atom,
+    id: 'atom-t4-a',
+    feedbackId: 'fb-t4',
+    atomText: 'very slow',
+
+    sourceStart: 0,
+    sourceEnd: 9,
+    verificationStatus: 'verified'
+  };
+  const t4AtomB: FeedbackAtom = {
+    ...t1Atom,
+    id: 'atom-t4-b',
+    feedbackId: 'fb-t4',
+    atomText: 'very slow',
+    sourceStart: 29,
+    sourceEnd: 38,
+    verificationStatus: 'verified'
+  };
+  await FeedbackRepo.saveAtoms([t4AtomA, t4AtomB]);
+  const fbT4WithAtoms = await FeedbackRepo.getFeedbackById('fb-t4');
+  const verifiedT4 = getVerifiedAtoms(fbT4WithAtoms);
+  assert(verifiedT4.length === 2, 'Test 4 (Same text, different location): Both unique spans 0:9 and 29:38 survive');
+
+  // Test 5: Missing customer
+  assert(getCustomerDisplayName(undefined) === 'Unknown customer', 'Test 5: Missing customer returns "Unknown customer"');
+  assert(getCustomerDisplayName('') === 'Unknown customer', 'Test 5: Empty customer returns "Unknown customer"');
+  assert(getCustomerDisplayName('Acme Inc') === 'Acme Inc', 'Test 5: Persisted customer name is preserved');
+
+  // Test 6: Missing segment
+  assert(getSegmentDisplayName(undefined) === 'Unassigned', 'Test 6: Missing segment returns "Unassigned"');
+  assert(getSegmentDisplayName('Enterprise') === 'Enterprise', 'Test 6: Persisted segment is preserved');
+
+  // Test 7: Missing date
+  assert(formatEvidenceDate(undefined, undefined) === 'No date', 'Test 7: Missing date returns "No date"');
+  assert(formatEvidenceDate('2026-01-15T00:00:00.000Z', undefined) !== 'No date', 'Test 7: Valid source date formatted');
+
+  // Test 8: AI failure (Evidence survives AI failure, no fake atoms)
+  const t8Fb: Feedback = {
+    id: 'fb-t8-fail',
+    workspaceId: 'ws-atom-tests',
+    sourceType: 'csv',
+    originalText: 'System timeout during large migration.',
+    analysisText: '',
+    sourceCreatedAt: new Date().toISOString(),
+    importedAt: new Date().toISOString(),
+    fingerprint: 'fp-t8'
+  };
+  const failAtoms = await SubstringAtomizer.atomizeFeedback(t8Fb);
+  assert(failAtoms.length === 0, 'Test 8 (AI failure): No hallucinated or fake atoms when AI input is empty/fails');
+
+  // Test 9: Retry (Retrying atomization must not create duplicate atoms)
+  await FeedbackRepo.saveAtoms([t3Atom1]);
+  await FeedbackRepo.saveAtoms([t3Atom1]); // retry save
+  const retryFb = await FeedbackRepo.getFeedbackById('fb-t3');
+  assert(getVerifiedAtoms(retryFb).length === 1, 'Test 9 (Retry): Retrying atomization does not duplicate atoms');
+
+  // Test 10: Concurrent retry (Two workers result in 1 atom per unique span)
+  await Promise.all([
+    FeedbackRepo.saveAtoms([t3Atom1]),
+    FeedbackRepo.saveAtoms([t3Atom2])
+  ]);
+  const concurrentFb = await FeedbackRepo.getFeedbackById('fb-t3');
+  assert(getVerifiedAtoms(concurrentFb).length === 1, 'Test 10 (Concurrent retry): 1 atom per unique source span');
+
+  // Source Formatter Test
+  assert(formatSourceType('csv') === 'CSV', 'Source format: CSV');
+  assert(formatSourceType('google_play') === 'GOOGLE PLAY', 'Source format: GOOGLE PLAY');
+  assert(formatSourceType(undefined) === 'UNKNOWN', 'Source format: fallback UNKNOWN');
 
   // 5. Deterministic 5-Factor Scoring Test (25% + 25% + 15% + 20% + 15% = 100%)
   const scoreBreakdown = ExplainableScoringEngine.calculateOpportunityScore({

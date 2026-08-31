@@ -1,31 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, RotateCcw } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
-import { useTraceStore } from '@/lib/store';
-import { useToast } from '@/components/ui/toast';
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
-  const { resetToDemoData } = useTraceStore();
-  const { addToast } = useToast();
   const location = useLocation();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const handleReset = () => {
-    if (window.confirm('Reset all Trace data back to the clean baseline demonstration state?')) {
-      resetToDemoData();
-      addToast({
-        type: 'info',
-        title: 'Demo State Reset',
-        description: 'Workspace restored to clean factory demonstration seed.'
-      });
-    }
-  };
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -37,7 +22,7 @@ export function Header() {
     if (path.startsWith('/decisions')) return 'Decision Memory';
     if (path.startsWith('/roadmap')) return 'Roadmap';
     if (path.startsWith('/sources')) return 'Feedback Sources';
-    if (path.startsWith('/settings/context')) return 'Product Context';
+    if (path.startsWith('/settings/context')) return 'Product Context & Settings';
     return 'Workspace';
   };
 
@@ -52,14 +37,6 @@ export function Header() {
 
       {/* Right Quick Controls */}
       <div className="flex items-center gap-1.5">
-        <button
-          onClick={handleReset}
-          title="Reset Demo Data"
-          className="p-1.5 rounded-lg text-slate-400 dark:text-[#8C92A4] hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#1A1E26] transition-colors"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-        </button>
-
         <button
           onClick={toggleTheme}
           title={mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle Theme'}

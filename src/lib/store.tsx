@@ -68,6 +68,7 @@ interface TraceStoreContextType {
       duplicateCount?: number;
     }
   ) => Promise<void>;
+  reprocessImport: (importId: string) => Promise<void>;
   recordDecision: (opportunityId: string, decision: DecisionType, rationale: string, alternativeTitle?: string) => Promise<void>;
   updateOpportunityStatus: (opportunityId: string, status: OpportunityStatus) => Promise<void>;
   updateRoadmapItemStatus: (roadmapId: string, newStatus: RoadmapStatus) => Promise<void>;
@@ -94,19 +95,20 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [decisions, setDecisions] = useState<ProductDecision[]>([]);
   const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
 
-  // Active Processing Job State
+  // Active Job Execution state
   const [activeJob, setActiveJob] = useState<ProcessingJob | null>(null);
   const [activeStage, setActiveStage] = useState<ProcessingJobStage | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
+  // Data Loading / Refresh
   const refreshFromRepositories = useCallback(async () => {
     const wsId = workspace.id;
     const [fb, th, pp, ins, opps, decs, rd, srcs] = await Promise.all([
       FeedbackRepo.getFeedbackByWorkspace(wsId),
       IntelligenceRepo.getThemesByWorkspace(wsId),
-      PainPointRepo_getAll(wsId),
+      IntelligenceRepo.getPainPointsByWorkspace(wsId),
       IntelligenceRepo.getInsightsByWorkspace(wsId),
       DecisionsRepo.getOpportunitiesByWorkspace(wsId),
       DecisionsRepo.getDecisionsByWorkspace(wsId),
@@ -124,11 +126,6 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     setSources(srcs);
   }, [workspace.id]);
 
-  // Helper for pain points
-  async function PainPointRepo_getAll(wsId: string) {
-    return IntelligenceRepo.getPainPointsByWorkspace(wsId);
-  }
-
   // Subscribe to progress events from Orchestrator
   useEffect(() => {
     const unsubscribe = ProcessingOrchestrator.onProgress((job, stage) => {
@@ -139,7 +136,9 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         refreshFromRepositories();
       }
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [refreshFromRepositories]);
 
   // Hydration from LocalStorage
@@ -405,6 +404,25 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     });
   };
 
+  const reprocessImport = async (importId: string) => {
+    setIsProcessing(true);
+    try {
+      const records = feedbackList.filter(f => f.importId === importId || f.sourceId === importId);
+      const job = await ProcessingOrchestrator.createJob({
+        workspaceId: workspace.id,
+        importId,
+        totalRecords: records.length || feedbackList.length,
+        type: 'reprocess'
+      });
+      await ProcessingOrchestrator.executeJob(job.id);
+      await refreshFromRepositories();
+    } catch (e) {
+      console.error('Reprocess import failed:', e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const clearWorkspaceData = async () => {
     await Promise.all([
       FeedbackRepo.clearWorkspace(workspace.id),
@@ -447,6 +465,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         activeStage,
         isProcessing,
         ingestCanonicalBatch,
+        reprocessImport,
         recordDecision,
         updateOpportunityStatus,
         updateRoadmapItemStatus,
@@ -454,6 +473,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         clearWorkspaceData
       }}
     >
+
       {children}
     </TraceStoreContext.Provider>
   );

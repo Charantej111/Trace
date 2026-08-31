@@ -6,6 +6,15 @@ export class SubstringAtomizer {
   /**
    * Decomposes customer feedback into discrete atoms and strictly asserts substring offsets in code.
    * INVARIANT: originalText.slice(sourceStart, sourceEnd) === atomText
+   *
+   * Flow:
+   * 1. AI proposes atom clauses based on analysisText
+   * 2. Normalize proposed atom text for matching
+   * 3. Locate exact substring in originalText
+   * 4. Calculate sourceStart/sourceEnd
+   * 5. Verify: originalText.slice(sourceStart, sourceEnd) === atomText
+   * 6. Deduplicate by span (sourceStart:sourceEnd)
+   * 7. Persist only valid unique atoms. If not found -> verificationStatus = 'rejected'.
    */
   public static async atomizeFeedback(
     feedback: Feedback,
@@ -20,50 +29,69 @@ export class SubstringAtomizer {
     }
 
     // AI/NLP proposes atom clauses based solely on safe analysisText
-    const proposed: ProposedAtom[] = await AIClient.atomizeAndClassify(
-      { analysisText: safeAnalysis },
-      feedback.workspaceId,
-      jobId
-    );
+    let proposed: ProposedAtom[] = [];
+    try {
+      proposed = await AIClient.atomizeAndClassify(
+        { analysisText: safeAnalysis },
+        feedback.workspaceId,
+        jobId
+      );
+    } catch (e) {
+      console.error(`AI atomization failed for feedback ${feedback.id}:`, e);
+      // Evidence survives AI failure; return no fake atoms
+      return [];
+    }
 
     const atoms: FeedbackAtom[] = [];
+    const seenSpans = new Set<string>();
 
     proposed.forEach((prop, idx) => {
-      const atomText = prop.atomText.trim();
-      if (!atomText) return;
+      const atomTextRaw = prop.atomText ? prop.atomText.trim() : '';
+      if (!atomTextRaw) return;
 
-      // Deterministic offset resolution in originalText (server calculated, never trusted from LLM)
-      let sourceStart = rawOriginal.indexOf(atomText);
-      let sourceEnd = sourceStart >= 0 ? sourceStart + atomText.length : -1;
+      // Locate exact verbatim substring in originalText
+      let sourceStart = rawOriginal.indexOf(atomTextRaw);
+      let sourceEnd = sourceStart >= 0 ? sourceStart + atomTextRaw.length : -1;
+      let resolvedText = atomTextRaw;
 
-      // Case-insensitive fallback if casing differed during parsing
+      // If exact casing wasn't found, try case-insensitive location to extract verbatim text
       if (sourceStart === -1) {
         const lowerRaw = rawOriginal.toLowerCase();
-        const lowerAtom = atomText.toLowerCase();
+        const lowerAtom = atomTextRaw.toLowerCase();
         sourceStart = lowerRaw.indexOf(lowerAtom);
         if (sourceStart >= 0) {
           sourceEnd = sourceStart + lowerAtom.length;
+          // Extract exact verbatim text from originalText at found offsets
+          resolvedText = rawOriginal.slice(sourceStart, sourceEnd);
         }
       }
 
       // Strict Invariant Check
       let isVerified = false;
-      let resolvedText = atomText;
-
-      if (sourceStart >= 0 && sourceEnd > sourceStart) {
+      if (
+        sourceStart >= 0 &&
+        sourceEnd > sourceStart &&
+        sourceEnd <= rawOriginal.length
+      ) {
         const sliced = rawOriginal.slice(sourceStart, sourceEnd);
-        if (sliced.toLowerCase() === atomText.toLowerCase()) {
+        if (sliced === resolvedText) {
           isVerified = true;
-          resolvedText = sliced; // Exact verbatim casing from originalText
         }
       }
 
-      // Fallback: If clause was modified by PII redaction token, locate surrounding context
+      // If substring cannot be located, mark rejected without inventing offsets
       if (!isVerified) {
-        sourceStart = 0;
-        sourceEnd = rawOriginal.length;
-        resolvedText = rawOriginal;
-        isVerified = true;
+        sourceStart = -1;
+        sourceEnd = -1;
+        resolvedText = atomTextRaw;
+      } else {
+        // Deduplicate by span (feedback_id + sourceStart + sourceEnd)
+        const spanKey = `${sourceStart}:${sourceEnd}`;
+        if (seenSpans.has(spanKey)) {
+          // Already have a verified atom for this exact source span; do not duplicate
+          return;
+        }
+        seenSpans.add(spanKey);
       }
 
       atoms.push({

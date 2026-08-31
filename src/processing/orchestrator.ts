@@ -31,10 +31,13 @@ export type JobProgressCallback = (job: ProcessingJob, currentStage?: Processing
 export class ProcessingOrchestrator {
   private static activeProgressListeners: Set<JobProgressCallback> = new Set();
 
-  public static onProgress(callback: JobProgressCallback) {
+  public static onProgress(callback: JobProgressCallback): () => void {
     this.activeProgressListeners.add(callback);
-    return () => this.activeProgressListeners.delete(callback);
+    return () => {
+      this.activeProgressListeners.delete(callback);
+    };
   }
+
 
   private static notifyProgress(job: ProcessingJob, stage?: ProcessingJobStage) {
     this.activeProgressListeners.forEach(cb => cb(job, stage));

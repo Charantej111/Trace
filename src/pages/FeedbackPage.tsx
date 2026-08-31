@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
 import { useTraceStore } from '@/lib/store';
 import { Feedback } from '@/types/trace';
-import { Search, MessageSquare, Upload } from 'lucide-react';
+import { Search, Upload } from 'lucide-react';
 import { FeedbackDetailDrawer } from '@/components/feedback/FeedbackDetailDrawer';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { Link } from 'react-router-dom';
+import {
+  getCustomerDisplayName,
+  getSegmentDisplayName,
+  formatSourceType,
+  formatEvidenceDate,
+  getVerifiedAtoms
+} from '@/lib/evidence-utils';
 
 const SOURCE_OPTIONS = [
   { value: 'all', label: 'All Sources' },
   { value: 'csv', label: 'CSV' },
   { value: 'xlsx', label: 'Excel (XLSX)' },
   { value: 'json', label: 'JSON' },
-  { value: 'paste', label: 'Quick Paste' }
+  { value: 'paste', label: 'Quick Paste' },
+  { value: 'google_play', label: 'Google Play' },
+  { value: 'app_store', label: 'App Store' },
+  { value: 'zendesk', label: 'Zendesk' },
+  { value: 'intercom', label: 'Intercom' },
+  { value: 'api', label: 'API' }
 ];
 
 const SEVERITY_OPTIONS = [
@@ -27,7 +39,8 @@ const INTENT_OPTIONS = [
   { value: 'bug_report', label: 'Bug Report' },
   { value: 'feature_request', label: 'Feature Request' },
   { value: 'complaint', label: 'Complaint' },
-  { value: 'praise', label: 'Praise' }
+  { value: 'praise', label: 'Praise' },
+  { value: 'question', label: 'Question' }
 ];
 
 export function FeedbackPage() {
@@ -42,13 +55,18 @@ export function FeedbackPage() {
 
   // Filtered dataset
   const filteredFeedback = feedbackList.filter(item => {
-    const matchesSearch = searchQuery === '' ||
+    const verifiedAtoms = getVerifiedAtoms(item);
+    const matchesSearch =
+      searchQuery === '' ||
       item.originalText.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.customerName && item.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
+      (item.customerName && item.customerName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      verifiedAtoms.some(a => a.atomText.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesSource = selectedSource === 'all' || item.sourceType === selectedSource;
-    const matchesSeverity = selectedSeverity === 'all' || item.atoms?.some(a => a.severity === selectedSeverity);
-    const matchesIntent = selectedIntent === 'all' || item.atoms?.some(a => a.intent === selectedIntent);
+    const matchesSeverity =
+      selectedSeverity === 'all' || verifiedAtoms.some(a => a.severity === selectedSeverity);
+    const matchesIntent =
+      selectedIntent === 'all' || verifiedAtoms.some(a => a.intent === selectedIntent);
 
     return matchesSearch && matchesSource && matchesSeverity && matchesIntent;
   });
@@ -100,29 +118,31 @@ export function FeedbackPage() {
             options={SOURCE_OPTIONS}
             value={selectedSource}
             onChange={setSelectedSource}
+            className="w-36"
           />
 
           <CustomSelect
             options={SEVERITY_OPTIONS}
             value={selectedSeverity}
             onChange={setSelectedSeverity}
+            className="w-36"
           />
 
           <CustomSelect
             options={INTENT_OPTIONS}
             value={selectedIntent}
             onChange={setSelectedIntent}
+            className="w-36"
           />
         </div>
       </div>
 
-      {/* Main Data Table */}
+      {/* Main Table */}
       <div className="rounded-xl surface-card overflow-hidden">
         {filteredFeedback.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400 dark:text-[#525866] space-y-2">
-            <MessageSquare className="w-6 h-6 mx-auto text-slate-400 dark:text-[#525866]" />
-            <p className="font-semibold text-slate-700 dark:text-[#EDEDED]">No Feedback Records Match Filters</p>
-            <p className="text-[11px]">Try clearing search or adjusting active filters.</p>
+          <div className="p-12 text-center text-xs text-slate-400 dark:text-[#525866] space-y-2">
+            <p className="font-semibold text-slate-700 dark:text-[#EDEDED]">No feedback matches filter criteria</p>
+            <p className="text-[11px]">Adjust your search query or reset filter selections.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -139,7 +159,8 @@ export function FeedbackPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1F232B]">
                 {filteredFeedback.map(item => {
-                  const primaryAtom = item.atoms?.[0];
+                  const verifiedAtoms = getVerifiedAtoms(item);
+                  const primaryAtom = verifiedAtoms[0];
                   const severity = primaryAtom?.severity || 'medium';
 
                   return (
@@ -149,10 +170,10 @@ export function FeedbackPage() {
                       className="hover:bg-slate-50 dark:hover:bg-[#181B22] transition-colors cursor-pointer"
                     >
                       <td className="py-3 px-3.5 font-semibold text-slate-900 dark:text-[#EDEDED] whitespace-nowrap">
-                        {item.customerName || 'Anonymous Account'}
+                        {getCustomerDisplayName(item.customerName)}
                       </td>
                       <td className="py-3 px-3.5 font-mono text-[11px] uppercase text-slate-500 dark:text-[#64748B] whitespace-nowrap">
-                        {item.sourceType}
+                        {formatSourceType(item.sourceType)}
                       </td>
                       <td className="py-3 px-3.5 font-normal text-slate-800 dark:text-[#C9CDD8] max-w-md truncate">
                         "{item.originalText}"
@@ -167,10 +188,10 @@ export function FeedbackPage() {
                         </span>
                       </td>
                       <td className="py-3 px-3.5 text-slate-600 dark:text-[#8C92A4] whitespace-nowrap">
-                        {item.customerSegmentName || 'SMB'}
+                        {getSegmentDisplayName(item.customerSegmentName)}
                       </td>
                       <td className="py-3 px-3.5 font-mono text-[10px] text-slate-400 dark:text-[#525866] text-right whitespace-nowrap">
-                        {new Date(item.sourceCreatedAt || item.importedAt).toLocaleDateString()}
+                        {formatEvidenceDate(item.sourceCreatedAt, item.importedAt)}
                       </td>
                     </tr>
                   );
