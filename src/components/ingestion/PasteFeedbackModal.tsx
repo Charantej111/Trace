@@ -94,24 +94,24 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl surface-glass rounded-3xl border border-slate-200/80 dark:border-[#334155] shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-xl surface-glass rounded-2xl border border-slate-200 dark:border-white/[0.08] shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-[#334155] pb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/[0.08] pb-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#3B9B85] flex items-center justify-center font-bold shadow-2xs">
+            <div className="w-8 h-8 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
               <MessageSquare className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-[#EDEDED]">
                 Quick Capture — Paste Customer Statements
               </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-[#8C92A4] font-mono mt-0.5">
                 Paste raw feedback comments, chat transcripts, or meeting notes directly into Trace.
               </p>
             </div>
           </div>
 
-          <button onClick={onClose} className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#1A1E26] transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -119,11 +119,11 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
         {/* Text Area */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="font-bold text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+            <label className="font-semibold text-slate-700 dark:text-[#EDEDED] font-mono text-[11px]">
               VERBATIM CUSTOMER FEEDBACK
             </label>
             {parsedStatements.length > 0 && (
-              <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400">
+              <span className="text-[10px] font-mono font-bold text-[#2E8B75] dark:text-[#10B981]">
                 {parsedStatements.length} statement{parsedStatements.length > 1 ? 's' : ''} detected
               </span>
             )}
@@ -144,22 +144,22 @@ Please add bulk export capability for weekly reports.`}
           />
         </div>
 
-        {/* Optional Metadata Controls */}
-        <div className="grid grid-cols-3 gap-3 pt-1">
+        {/* Advanced metadata overrides */}
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-500 font-mono block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 dark:text-[#525866] font-mono block mb-1">
               SOURCE CHANNEL NAME
             </label>
             <input
               type="text"
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
-              className="w-full p-2 rounded-lg bg-slate-50 dark:bg-[#090b10] border border-slate-200 dark:border-[#1e2333] text-xs font-semibold focus:outline-none"
+              className="w-full p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200 dark:border-white/[0.08] text-xs font-semibold text-slate-900 dark:text-[#EDEDED] focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-500 font-mono block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 dark:text-[#525866] font-mono block mb-1">
               CUSTOMER SEGMENT
             </label>
             <CustomSelect
@@ -177,7 +177,7 @@ Please add bulk export capability for weekly reports.`}
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-500 font-mono block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 dark:text-[#525866] font-mono block mb-1">
               RATING (OPTIONAL)
             </label>
             <CustomSelect
@@ -197,22 +197,22 @@ Please add bulk export capability for weekly reports.`}
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-[#171b26]">
-          <span className="text-[10px] text-slate-400 font-mono">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/[0.08]">
+          <span className="text-[10px] text-slate-400 dark:text-[#525866] font-mono">
             Customer identity defaults to "Unknown" (never fabricated)
           </span>
 
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161a26] text-slate-700 dark:text-slate-300 font-semibold"
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1A1E26] text-slate-700 dark:text-[#EDEDED] font-semibold"
             >
               Cancel
             </button>
             <button
               onClick={handleIngestPaste}
               disabled={isProcessing || parsedStatements.length === 0}
-              className="px-4 py-1.5 rounded-xl bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-bold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
+              className="px-4 py-1.5 rounded-lg bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold flex items-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50"
             >
               {isProcessing ? (
                 <span>Ingesting Statements...</span>

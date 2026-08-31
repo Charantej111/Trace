@@ -8,9 +8,11 @@
   --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  /* Official Trace Logo Color System */
+  /* Official Trace Logo Color System (Neutral + Emerald Teal) */
   --brand-teal: #2E8B75;
   --brand-teal-hover: #1F6B58;
+  --brand-teal-dark: #10B981;
+  --brand-teal-glow: rgba(46, 139, 117, 0.15);
 }
 
 /* Light Theme Foundation */
@@ -23,10 +25,10 @@ body {
   color: #0F172A;
 }
 
-/* Linear / Vercel Obsidian Dark Theme Foundation (Zero AI Slop) */
+/* Neutral Obsidian Dark Theme Foundation (Zero Navy/Blue) */
 .dark body {
-  background-color: #090A0C;
-  color: #F1F5F9;
+  background-color: #0B0C0E;
+  color: #EDEDED;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -41,36 +43,38 @@ h1, h2, h3, h4, h5, h6 {
   font-feature-settings: "tnum" 1, "zero" 1;
 }
 
-/* Human-Crafted Surface Cards */
+/* Handcrafted Surface Cards (8px-grid 16px radius) */
 .surface-card {
   background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
 }
 
 .dark .surface-card {
-  background-color: #121418;
-  border: 1px solid #1F232B;
-  border-radius: 12px;
+  background-color: #13151A;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
 /* Crisp Hover States */
 .surface-card-hover {
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
 }
 
 .surface-card-hover:hover {
   border-color: #CBD5E1;
+  transform: translateY(-1px);
 }
 
 .dark .surface-card-hover:hover {
-  border-color: #2D333F;
-  background-color: #15181D;
+  border-color: rgba(255, 255, 255, 0.15);
+  background-color: #161820;
+  transform: translateY(-1px);
 }
 
-/* Clean Inset Sub-Surfaces */
+/* Inset Sub-Surfaces (8px-grid 8px/12px radius) */
 .surface-subtle {
   background-color: #F1F5F9;
   border: 1px solid #E2E8F0;
@@ -78,24 +82,28 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dark .surface-subtle {
-  background-color: #181B22;
-  border: 1px solid #232833;
+  background-color: #171A20;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
 }
 
-/* Floating Elements (Modals, Popovers, Drawers) */
+/* Floating Elements (Modals, Popovers, Drawers with 20px blur) */
 .surface-glass {
-  background-color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.08);
 }
 
 .dark .surface-glass {
-  background-color: #121418;
-  border: 1px solid #232833;
-  border-radius: 12px;
-  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  background-color: rgba(19, 21, 26, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
 /* Status Indicator Dots */
@@ -119,7 +127,7 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #10B981;
 }
 
-/* Scrollbar Customization */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -135,10 +143,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #272C38;
+  background: #232730;
   border-radius: 9999px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: #323846;
 }

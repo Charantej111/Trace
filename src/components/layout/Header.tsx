@@ -42,7 +42,7 @@ export function Header() {
   };
 
   return (
-    <header className="h-11 border-b border-slate-200 dark:border-[#1A1D24] bg-white dark:bg-[#0C0D10] text-slate-900 dark:text-[#EDEDED] px-6 flex items-center justify-between sticky top-0 z-30 text-xs select-none">
+    <header className="h-12 border-b border-slate-200/90 dark:border-white/[0.08] bg-white/80 dark:bg-[#0E1013]/90 backdrop-blur-xl text-slate-900 dark:text-[#EDEDED] px-6 flex items-center justify-between sticky top-0 z-30 text-xs select-none shadow-2xs">
       {/* Left Page Title */}
       <div className="flex items-center">
         <span className="font-bold text-slate-900 dark:text-[#EDEDED] text-xs tracking-tight">
@@ -55,7 +55,7 @@ export function Header() {
         <button
           onClick={handleReset}
           title="Reset Demo Data"
-          className="p-1.5 rounded-md text-slate-400 dark:text-[#8C92A4] hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#181B22] transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 dark:text-[#8C92A4] hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#1A1E26] transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
@@ -63,7 +63,7 @@ export function Header() {
         <button
           onClick={toggleTheme}
           title={mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle Theme'}
-          className="p-1.5 rounded-md text-slate-400 dark:text-[#8C92A4] hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#181B22] transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 dark:text-[#8C92A4] hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#1A1E26] transition-colors"
         >
           {mounted && theme === 'dark' ? (
             <Sun className="w-3.5 h-3.5 text-amber-400" />
