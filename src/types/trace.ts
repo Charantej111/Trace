@@ -2,11 +2,12 @@ export type IntentType = 'bug_report' | 'complaint' | 'feature_request' | 'prais
 export type SentimentType = 'positive' | 'neutral' | 'negative';
 export type SeverityType = 'low' | 'medium' | 'high' | 'critical';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
-export type SourceType = 'csv' | 'google_play' | 'app_store' | 'zendesk' | 'intercom' | 'sales_call' | 'survey' | 'other';
+export type SourceType = 'csv' | 'xlsx' | 'json' | 'paste' | 'google_play' | 'app_store' | 'zendesk' | 'intercom' | 'sales_call' | 'survey' | 'api' | 'other';
 export type OpportunityStatus = 'suggested' | 'reviewing' | 'accepted' | 'rejected' | 'archived';
 export type DecisionType = 'accepted' | 'rejected_wont_do' | 'deferred' | 'workaround_exists';
 export type RoadmapStatus = 'idea' | 'candidate' | 'planned' | 'in_progress' | 'shipped' | 'archived';
 export type EvidenceType = 'supporting' | 'contradicting' | 'neutral';
+export type IngestionRecordStatus = 'pending' | 'valid' | 'invalid' | 'duplicate' | 'processed' | 'failed';
 
 export interface Workspace {
   id: string;
@@ -48,22 +49,34 @@ export interface FeedbackSource {
   workspaceId: string;
   type: SourceType;
   name: string;
-  status: 'active' | 'syncing' | 'error';
+  status: 'active' | 'syncing' | 'error' | 'coming_soon';
   lastSyncedAt?: string;
   recordCount: number;
+}
+
+export interface SourceLocation {
+  fileName?: string;
+  sheetName?: string;
+  rowIndex?: number;
 }
 
 export interface ImportJob {
   id: string;
   workspaceId: string;
   sourceId?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'completed_with_warnings' | 'failed' | 'cancelled';
   fileName: string;
+  fileType?: string;
   totalRows: number;
   acceptedRows: number;
   rejectedRows: number;
   duplicateRows: number;
   atomsExtracted: number;
+  errorSummary?: {
+    totalErrors?: number;
+    totalWarnings?: number;
+    sampleErrors?: { rowNumber?: number; message: string }[];
+  };
   startedAt?: string;
   completedAt?: string;
   createdAt: string;
@@ -77,6 +90,7 @@ export interface Feedback {
   importId?: string;
   externalId?: string;
   originalText: string;
+  analysisText?: string;
   normalizedText?: string;
   language?: string;
   sourceCreatedAt: string;
@@ -88,8 +102,12 @@ export interface Feedback {
   rating?: number;
   appVersion?: string;
   deviceInfo?: string;
+  sourceLocation?: SourceLocation;
+  normalizedMetadata?: Record<string, unknown>;
+  rawPayload?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   fingerprint: string;
+  status?: IngestionRecordStatus;
   atoms?: FeedbackAtom[];
 }
 

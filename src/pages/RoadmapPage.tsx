@@ -75,7 +75,7 @@ export function RoadmapPage() {
           return (
             <div
               key={col.status}
-              className="p-3.5 rounded-2xl surface-card space-y-3 flex flex-col min-h-[560px]"
+              className="p-3.5 rounded-2xl surface-card space-y-3 flex flex-col min-h-140"
             >
               {/* Column Header */}
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#171b26] pb-2.5 text-xs font-bold text-slate-900 dark:text-white">

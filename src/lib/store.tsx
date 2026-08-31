@@ -14,8 +14,11 @@ import {
   RoadmapItem,
   DecisionType,
   RoadmapStatus,
-  OpportunityStatus
+  OpportunityStatus,
+  ImportJob,
+  SourceType
 } from '@/types/trace';
+import { CanonicalFeedback, IntelligencePipeline } from '@/ingestion';
 import {
   INITIAL_WORKSPACE,
   INITIAL_PRODUCT_CONTEXT,
@@ -36,6 +39,7 @@ interface TraceStoreContextType {
   updateProductContext: (newContext: Partial<ProductContext>) => void;
   customerSegments: CustomerSegment[];
   sources: FeedbackSource[];
+  importJobs: ImportJob[];
   feedbackList: Feedback[];
   themes: Theme[];
   painPoints: PainPoint[];
@@ -43,14 +47,30 @@ interface TraceStoreContextType {
   opportunities: Opportunity[];
   decisions: ProductDecision[];
   roadmapItems: RoadmapItem[];
+  isDemoMode: boolean;
   
   // Actions
+  ingestCanonicalBatch: (
+    records: CanonicalFeedback[],
+    sourceMeta: {
+      name: string;
+      type: SourceType;
+      fileName?: string;
+      fileSize?: number;
+      importId?: string;
+      validCount?: number;
+      invalidCount?: number;
+      duplicateCount?: number;
+    }
+  ) => void;
+  reprocessImport: (importId: string) => void;
   addFeedbackBatch: (newRecords: Partial<Feedback>[], sourceName?: string) => void;
   recordDecision: (opportunityId: string, decision: DecisionType, rationale: string, alternativeTitle?: string) => void;
   updateOpportunityStatus: (opportunityId: string, status: OpportunityStatus) => void;
   updateRoadmapItemStatus: (roadmapId: string, newStatus: RoadmapStatus) => void;
   addOpportunity: (opportunity: Omit<Opportunity, 'id' | 'createdAt' | 'overallPriorityScore'>) => void;
   resetToDemoData: () => void;
+  clearWorkspaceData: () => void;
 }
 
 const TraceStoreContext = createContext<TraceStoreContextType | null>(null);
@@ -63,6 +83,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
   const [productContext, setProductContext] = useState<ProductContext>(INITIAL_PRODUCT_CONTEXT);
   const [customerSegments] = useState<CustomerSegment[]>(INITIAL_CUSTOMER_SEGMENTS);
   const [sources, setSources] = useState<FeedbackSource[]>(INITIAL_SOURCES);
+  const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [feedbackList, setFeedbackList] = useState<Feedback[]>(INITIAL_FEEDBACK);
   const [themes, setThemes] = useState<Theme[]>(INITIAL_THEMES);
   const [painPoints, setPainPoints] = useState<PainPoint[]>(INITIAL_PAIN_POINTS);
@@ -70,6 +91,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
   const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
   const [decisions, setDecisions] = useState<ProductDecision[]>(INITIAL_DECISIONS);
   const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>(INITIAL_ROADMAP);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -86,6 +108,8 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         if (parsed.decisions) setDecisions(parsed.decisions);
         if (parsed.roadmapItems) setRoadmapItems(parsed.roadmapItems);
         if (parsed.sources) setSources(parsed.sources);
+        if (parsed.importJobs) setImportJobs(parsed.importJobs);
+        if (parsed.isDemoMode !== undefined) setIsDemoMode(parsed.isDemoMode);
       }
     } catch (e) {
       console.error('Error loading stored state:', e);
@@ -106,7 +130,9 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         opportunities,
         decisions,
         roadmapItems,
-        sources
+        sources,
+        importJobs,
+        isDemoMode
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
@@ -122,7 +148,9 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     opportunities,
     decisions,
     roadmapItems,
-    sources
+    sources,
+    importJobs,
+    isDemoMode
   ]);
 
   const updateProductContext = (newContext: Partial<ProductContext>) => {
@@ -131,6 +159,112 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
       ...newContext,
       updatedAt: new Date().toISOString()
     }));
+  };
+
+  const ingestCanonicalBatch = (
+    records: CanonicalFeedback[],
+    sourceMeta: {
+      name: string;
+      type: SourceType;
+      fileName?: string;
+      fileSize?: number;
+      importId?: string;
+      validCount?: number;
+      invalidCount?: number;
+      duplicateCount?: number;
+    }
+  ) => {
+    const timestamp = new Date().toISOString();
+
+    // Import Intelligence Pipeline
+    const newFeedback = IntelligencePipeline.process(records);
+    const atomsCount = newFeedback.reduce((acc, f) => acc + (f.atoms?.length || 0), 0);
+
+    setFeedbackList(prev => [...newFeedback, ...prev]);
+    setIsDemoMode(false); // Ingesting user data exits pure demo mode
+
+    // Register or Update Source
+    const sourceId = records[0]?.sourceId || `src-${Date.now()}`;
+    setSources(prev => {
+      const existingIdx = prev.findIndex(s => s.id === sourceId || s.name === sourceMeta.name);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          lastSyncedAt: timestamp,
+          recordCount: updated[existingIdx].recordCount + newFeedback.length
+        };
+        return updated;
+      }
+      return [
+        {
+          id: sourceId,
+          workspaceId: workspace.id,
+          type: sourceMeta.type,
+          name: sourceMeta.name,
+          status: 'active',
+          lastSyncedAt: timestamp,
+          recordCount: newFeedback.length
+        },
+        ...prev
+      ];
+    });
+
+    // Register Import Job Log
+    const newImportJob: ImportJob = {
+      id: sourceMeta.importId || `imp-${Date.now()}`,
+      workspaceId: workspace.id,
+      sourceId,
+      status: (sourceMeta.invalidCount || 0) > 0 ? 'completed_with_warnings' : 'completed',
+      fileName: sourceMeta.fileName || sourceMeta.name,
+      fileType: sourceMeta.type,
+      totalRows: records.length,
+      acceptedRows: sourceMeta.validCount || newFeedback.length,
+      rejectedRows: sourceMeta.invalidCount || 0,
+      duplicateRows: sourceMeta.duplicateCount || 0,
+      atomsExtracted: atomsCount,
+      startedAt: timestamp,
+      completedAt: timestamp,
+      createdAt: timestamp
+    };
+
+    setImportJobs(prev => [newImportJob, ...prev]);
+  };
+
+  const reprocessImport = (importId: string) => {
+    const targetFeedback = feedbackList.filter(f => f.importId === importId);
+    if (targetFeedback.length === 0) return;
+
+    // Convert back to canonical and re-run Intelligence Pipeline
+    const canonicals: CanonicalFeedback[] = targetFeedback.map(f => ({
+      id: f.id,
+      workspaceId: f.workspaceId,
+      sourceId: f.sourceId || 'src-reprocess',
+      importId: f.importId || importId,
+      sourceType: f.sourceType,
+      originalText: f.originalText,
+      analysisText: f.analysisText || f.originalText,
+      externalId: f.externalId,
+      sourceTimestamp: f.sourceCreatedAt,
+      ingestionTimestamp: f.importedAt,
+      rating: f.rating,
+      language: f.language,
+      segment: f.customerSegmentName,
+      sourceLocation: f.sourceLocation,
+      normalizedMetadata: f.normalizedMetadata || {},
+      rawPayload: f.rawPayload || {},
+      fingerprint: f.fingerprint,
+      status: f.status || 'valid'
+    }));
+
+    const reprocessed = IntelligencePipeline.process(canonicals);
+
+    setFeedbackList(prev =>
+      prev.map(f => {
+        const found = reprocessed.find(r => r.id === f.id);
+        return found || f;
+      })
+    );
   };
 
   const addFeedbackBatch = (newRecords: Partial<Feedback>[], sourceName = 'Custom Upload') => {
@@ -260,17 +394,18 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         id: `rd-${Date.now()}`,
         workspaceId: workspace.id,
         opportunityId: opp.id,
-        decisionId: newDecision.id,
         title: opp.title,
-        description: opp.suggestedSolution || opp.opportunityStatement,
         status: 'planned',
-        targetPeriod: 'Upcoming Sprint',
-        priority: opp.overallPriorityScore > 85 ? 'P0' : opp.overallPriorityScore > 70 ? 'P1' : 'P2',
-        evidenceCount: opp.evidenceCount,
-        topQuotes: [`Customer Problem: ${opp.problemStatement}`],
-        createdAt: timestamp,
-        updatedAt: timestamp
+        targetQuarter: 'Q3 2026',
+        owner: 'Engineering Team',
+        linkedDecisions: [newDecision.id],
+        impactMetrics: {
+          customerReach: opp.evidenceCount,
+          revenueValue: opp.overallPriorityScore * 1000
+        },
+        createdAt: timestamp
       };
+
       setRoadmapItems(prev => [newRoadmapItem, ...prev]);
     }
   };
@@ -283,29 +418,15 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
 
   const updateRoadmapItemStatus = (roadmapId: string, newStatus: RoadmapStatus) => {
     setRoadmapItems(prev =>
-      prev.map(item =>
-        item.id === roadmapId
-          ? {
-              ...item,
-              status: newStatus,
-              updatedAt: new Date().toISOString(),
-              shippedAt: newStatus === 'shipped' ? new Date().toISOString() : item.shippedAt
-            }
-          : item
-      )
+      prev.map(item => (item.id === roadmapId ? { ...item, status: newStatus } : item))
     );
   };
 
   const addOpportunity = (oppData: Omit<Opportunity, 'id' | 'createdAt' | 'overallPriorityScore'>) => {
-    const overallScore = Number(
-      (
-        oppData.scoreFrequency * 0.2 +
-        oppData.scoreSeverity * 0.2 +
-        oppData.scoreTrend * 0.15 +
-        oppData.scoreSegmentImpact * 0.15 +
-        oppData.scoreStrategicRelevance * 0.15 +
-        oppData.scoreEvidenceQuality * 0.15
-      ).toFixed(1)
+    const overallScore = Math.round(
+      oppData.scoreCustomerDemand * 0.4 +
+      oppData.scoreStrategicAlignment * 0.3 +
+      oppData.scoreSeverity * 0.3
     );
 
     const newOpp: Opportunity = {
@@ -328,6 +449,23 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     setOpportunities(INITIAL_OPPORTUNITIES);
     setDecisions(INITIAL_DECISIONS);
     setRoadmapItems(INITIAL_ROADMAP);
+    setImportJobs([]);
+    setIsDemoMode(true);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  const clearWorkspaceData = () => {
+    setProductContext(INITIAL_PRODUCT_CONTEXT);
+    setSources([]);
+    setFeedbackList([]);
+    setThemes([]);
+    setPainPoints([]);
+    setInsights([]);
+    setOpportunities([]);
+    setDecisions([]);
+    setRoadmapItems([]);
+    setImportJobs([]);
+    setIsDemoMode(false);
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -339,6 +477,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         updateProductContext,
         customerSegments,
         sources,
+        importJobs,
         feedbackList,
         themes,
         painPoints,
@@ -346,12 +485,16 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         opportunities,
         decisions,
         roadmapItems,
+        isDemoMode,
+        ingestCanonicalBatch,
+        reprocessImport,
         addFeedbackBatch,
         recordDecision,
         updateOpportunityStatus,
         updateRoadmapItemStatus,
         addOpportunity,
-        resetToDemoData
+        resetToDemoData,
+        clearWorkspaceData
       }}
     >
       {children}

@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast';
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
-  const { workspace, resetToDemoData } = useTraceStore();
+  const { workspace, resetToDemoData, isDemoMode } = useTraceStore();
   const { addToast } = useToast();
   const location = useLocation();
   const [mounted, setMounted] = useState(false);
@@ -46,7 +46,7 @@ export function Header() {
     if (path.startsWith('/opportunities')) return 'Opportunities Matrix';
     if (path.startsWith('/decisions')) return 'Decision Memory';
     if (path.startsWith('/roadmap')) return 'Roadmap Telemetry';
-    if (path.startsWith('/sources')) return 'Data Sources';
+    if (path.startsWith('/sources')) return 'Feedback Sources';
     if (path.startsWith('/settings/context')) return 'Strategic Context';
     return 'Workspace';
   };
@@ -58,6 +58,15 @@ export function Header() {
         <span className="font-semibold text-slate-400 dark:text-slate-500">
           {workspace.name}
         </span>
+        {isDemoMode ? (
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60">
+            DEMO DATA
+          </span>
+        ) : (
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60">
+            LIVE DATA
+          </span>
+        )}
         <span className="text-slate-300 dark:text-slate-700">/</span>
         <span className="font-bold text-slate-900 dark:text-slate-100">
           {getBreadcrumbTitle()}

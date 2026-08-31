@@ -47,7 +47,7 @@ create table if not exists product_context (
 create table if not exists feedback_sources (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references workspaces(id) on delete cascade,
-  type text not null check (type in ('csv', 'google_play', 'app_store', 'zendesk', 'intercom', 'sales_call', 'survey', 'other')),
+  type text not null check (type in ('csv', 'xlsx', 'json', 'paste', 'google_play', 'app_store', 'zendesk', 'intercom', 'sales_call', 'survey', 'api', 'other')),
   name text not null,
   status text not null default 'active',
   configuration jsonb not null default '{}',
@@ -59,8 +59,9 @@ create table if not exists imports (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references workspaces(id) on delete cascade,
   source_id uuid references feedback_sources(id) on delete set null,
-  status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'failed')),
+  status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'completed_with_warnings', 'failed', 'cancelled')),
   file_name text,
+  file_type text,
   total_rows integer default 0,
   accepted_rows integer default 0,
   rejected_rows integer default 0,
@@ -92,7 +93,7 @@ create table if not exists customers (
   created_at timestamptz not null default now()
 );
 
--- 5. Raw Feedback
+-- 5. Raw Feedback & Evidence
 create table if not exists feedback (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references workspaces(id) on delete cascade,
@@ -100,17 +101,22 @@ create table if not exists feedback (
   import_id uuid references imports(id) on delete set null,
   external_id text,
   original_text text not null,
-  normalized_text text,
+  analysis_text text,
   language text default 'en',
   source_created_at timestamptz,
   imported_at timestamptz not null default now(),
   customer_id uuid references customers(id) on delete set null,
+  customer_name text,
   customer_segment_id uuid references customer_segments(id) on delete set null,
+  customer_segment_name text,
   rating numeric,
   app_version text,
   device_info text,
-  metadata jsonb not null default '{}',
+  source_location jsonb not null default '{}',
+  normalized_metadata jsonb not null default '{}',
+  raw_payload jsonb not null default '{}',
   fingerprint text not null,
+  status text not null default 'valid' check (status in ('pending', 'valid', 'invalid', 'duplicate', 'processed', 'failed')),
   created_at timestamptz not null default now()
 );
 

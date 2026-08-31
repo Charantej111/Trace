@@ -102,7 +102,7 @@ export function FeedbackPage() {
 
       {/* Filter Toolbar */}
       <div className="p-3 rounded-xl surface-card flex flex-wrap items-center gap-2.5 text-xs">
-        <div className="relative flex-1 min-w-[240px]">
+        <div className="relative flex-1 min-w-60">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -162,7 +162,7 @@ export function FeedbackPage() {
             <span>SORT: RECENCY</span>
           </div>
 
-          <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-180 overflow-y-auto pr-1">
             {filteredFeedback.length === 0 ? (
               <div className="p-8 text-center surface-card rounded-2xl text-xs text-slate-400">
                 No customer statements found matching your filter criteria.

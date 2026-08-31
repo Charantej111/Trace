@@ -78,7 +78,7 @@ export function OverviewPage() {
             className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Ingest Feedback</span>
+            <span>Ingest Customer Feedback</span>
           </Link>
         </div>
       </motion.div>
