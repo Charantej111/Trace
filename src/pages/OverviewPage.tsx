@@ -6,16 +6,13 @@ import {
   Flame,
   ArrowRight,
   Sparkles,
-  Calendar,
-  Filter,
-  CheckCircle2,
-  Play,
-  Apple,
-  MessageSquare,
-  TrendingUp,
   Target,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Layers,
+  Activity,
+  ArrowUpRight,
+  MessageSquare
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 import { TelemetryChart } from '@/components/analytics/TelemetryChart';
@@ -23,23 +20,38 @@ import { TelemetryChart } from '@/components/analytics/TelemetryChart';
 export function OverviewPage() {
   const { feedbackList, painPoints, opportunities, roadmapItems, decisions } = useTraceStore();
 
-  const emergingSpike = painPoints.find(p => p.isEmerging) || painPoints[0];
-  const topProblems = painPoints.slice(0, 3);
+  // Dynamic calculations from actual store data
+  const totalFeedback = feedbackList.length;
+  const allAtoms = feedbackList.flatMap(f => f.atoms || []);
+  const totalAtoms = allAtoms.length;
+  const criticalAtomsCount = allAtoms.filter(a => a.severity === 'critical').length;
+  const bugsCount = allAtoms.filter(a => a.intent === 'bug_report').length;
+  const featureRequestsCount = allAtoms.filter(a => a.intent === 'feature_request').length;
+  const complaintsCount = allAtoms.filter(a => a.intent === 'complaint').length;
+  const praiseCount = allAtoms.filter(a => a.intent === 'praise').length;
+
+  const emergingSpikes = painPoints.filter(p => p.isEmerging);
+  const topProblems = painPoints.slice(0, 5);
   const suggestedOpportunities = opportunities.filter(o => o.status === 'suggested');
+
+  // Dynamic source counts
+  const sourceCounts: Record<string, number> = {};
+  feedbackList.forEach(f => {
+    const src = f.sourceType || 'other';
+    sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+  });
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.08
-      }
+      transition: { staggerChildren: 0.05 }
     }
   };
 
   const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 12 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } }
+    hidden: { opacity: 0, y: 6 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } }
   };
 
   return (
@@ -47,296 +59,337 @@ export function OverviewPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6 text-slate-900 dark:text-slate-100"
+      className="space-y-5 text-slate-900 dark:text-slate-100"
     >
-      {/* Greeting Header & Filter Bar */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Header / Actions */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            Good morning, Alex <span className="animate-bounce inline-block">👋</span>
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+            Executive Summary
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-            Trace has synthesized <strong className="text-indigo-600 dark:text-indigo-400">{feedbackList.length} statements</strong> into <strong className="text-slate-900 dark:text-slate-100">{painPoints.length} validated struggle patterns</strong> today.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Aggregated customer feedback metrics, extracted clause atoms, and prioritized initiatives.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <div className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2 card-shadow cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-            <span>Last 30 days</span>
-          </div>
-
+        <div className="flex items-center gap-2">
           <Link
             to="/sources"
-            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 card-shadow transition-colors"
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Ingest Data</span>
+            <span>Ingest Feedback</span>
           </Link>
         </div>
       </motion.div>
 
-      {/* Top 4 KPI Metrics Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1 */}
-        <motion.div
-          whileHover={{ y: -3 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 relative overflow-hidden"
-        >
+      {/* Real Dynamic Metrics Cards */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* Metric 1 */}
+        <div className="p-4 rounded-2xl surface-card space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Feedback Statements</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono-numbers font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30">
-              ↑ 18.6%
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase font-mono tracking-wider">
+              Feedback Statements
+            </span>
+            <span className="text-[10px] font-mono font-bold text-slate-400">
+              {Object.keys(sourceCounts).length} Channels
             </span>
           </div>
 
-          <div>
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono-numbers tracking-tight">{feedbackList.length}</span>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">from 5 connected channels</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-black text-slate-900 dark:text-white font-mono-numbers tracking-tight">
+              {totalFeedback}
+            </span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">total records</span>
           </div>
 
-          <div className="h-7 w-full pt-1">
-            <svg className="w-full h-full text-indigo-500" viewBox="0 0 100 25" fill="none">
-              <path d="M0 20 Q 20 15, 40 18 T 80 5 T 100 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-[#171b26] text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">
+            {Object.entries(sourceCounts).map(([src, count], idx) => (
+              <React.Fragment key={src}>
+                {idx > 0 && <span>·</span>}
+                <span className="capitalize">{src.replace('_', ' ')}: <strong>{count}</strong></span>
+              </React.Fragment>
+            ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Card 2 */}
-        <motion.div
-          whileHover={{ y: -3 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 relative overflow-hidden"
-        >
+        {/* Metric 2 */}
+        <div className="p-4 rounded-2xl surface-card space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Extracted Atoms</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono-numbers font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/30">
-              98.4% Acc.
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase font-mono tracking-wider">
+              Extracted Clause Atoms
             </span>
+            {criticalAtomsCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono-numbers font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40">
+                {criticalAtomsCount} critical
+              </span>
+            )}
           </div>
 
-          <div>
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono-numbers tracking-tight">
-              {feedbackList.reduce((acc, f) => acc + (f.atoms?.length || 1), 0)}
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-black text-slate-900 dark:text-white font-mono-numbers tracking-tight">
+              {totalAtoms}
             </span>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">clause-level intent extractions</p>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">parsed clauses</span>
           </div>
 
-          <div className="h-7 w-full pt-1">
-            <svg className="w-full h-full text-emerald-500" viewBox="0 0 100 25" fill="none">
-              <path d="M0 18 Q 30 22, 60 10 T 100 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-[#171b26] text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+            <span>Bugs: <strong>{bugsCount}</strong></span>
+            <span>·</span>
+            <span>Requests: <strong>{featureRequestsCount}</strong></span>
+            <span>·</span>
+            <span>Complaints: <strong>{complaintsCount}</strong></span>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Card 3 */}
-        <motion.div
-          whileHover={{ y: -3 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 relative overflow-hidden"
-        >
+        {/* Metric 3 */}
+        <div className="p-4 rounded-2xl surface-card space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Emerging Anomalies</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono-numbers font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800/30">
-              High Velocity
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase font-mono tracking-wider">
+              Problem Clusters
             </span>
+            {emergingSpikes.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono-numbers font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40">
+                {emergingSpikes.length} Emerging
+              </span>
+            )}
           </div>
 
-          <div>
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono-numbers tracking-tight">
-              {painPoints.filter(p => p.isEmerging).length} Spikes
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-black text-slate-900 dark:text-white font-mono-numbers tracking-tight">
+              {painPoints.length}
             </span>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">abnormal velocity surge</p>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">synthesized themes</span>
           </div>
 
-          <div className="h-7 w-full pt-1">
-            <svg className="w-full h-full text-rose-500" viewBox="0 0 100 25" fill="none">
-              <path d="M0 22 Q 40 20, 70 15 T 100 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-[#171b26] text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+            <span>Active Roadmaps: <strong>{roadmapItems.length}</strong></span>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Card 4 */}
-        <motion.div
-          whileHover={{ y: -3 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 relative overflow-hidden"
-        >
+        {/* Metric 4 */}
+        <div className="p-4 rounded-2xl surface-card space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Preserved Decisions</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono-numbers font-bold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800/30">
-              Institutional Memory
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase font-mono tracking-wider">
+              Decision Memory (PDR)
+            </span>
+            <span className="text-[10px] font-mono text-slate-400">
+              Audit Log
             </span>
           </div>
 
-          <div>
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono-numbers tracking-tight">
-              {decisions.length} Decisions
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-black text-slate-900 dark:text-white font-mono-numbers tracking-tight">
+              {decisions.length}
             </span>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">linked to roadmap & evidence</p>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">preserved decisions</span>
           </div>
 
-          <div className="h-7 w-full pt-1">
-            <svg className="w-full h-full text-sky-500" viewBox="0 0 100 25" fill="none">
-              <path d="M0 15 Q 35 8, 70 12 T 100 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-[#171b26] text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+            <span>Accepted: <strong>{decisions.filter(d => d.decision === 'accepted').length}</strong></span>
+            <span>·</span>
+            <span>Deferred: <strong>{decisions.filter(d => d.decision !== 'accepted').length}</strong></span>
           </div>
-        </motion.div>
+        </div>
       </motion.div>
 
-      {/* Emerging Spike Critical Anomaly Banner */}
-      {emergingSpike && (
-        <motion.div
-          variants={itemVariants}
-          className="p-5 rounded-2xl bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-transparent border border-rose-200 dark:border-rose-900/50 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
-        >
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-              <Flame className="w-5 h-5 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-600 text-white">
-                  Emerging Anomaly Spike
-                </span>
-                <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
-                  +{emergingSpike.trendPercentage}% velocity multiplier ({emergingSpike.velocityMultiplier}x)
-                </span>
+      {/* Dynamic Emerging Spikes (Only if present in painPoints) */}
+      {emergingSpikes.length > 0 && (
+        <motion.div variants={itemVariants} className="space-y-2">
+          {emergingSpikes.map(spike => (
+            <div
+              key={spike.id}
+              className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 surface-card flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <Flame className="w-4 h-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-rose-600 text-white font-mono">
+                      Velocity Spike
+                    </span>
+                    <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                      +{spike.trendPercentage}% Surge ({spike.velocityMultiplier}x baseline)
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-xs">
+                    {spike.title}
+                  </h3>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {spike.description}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mt-1">
-                {emergingSpike.title}
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 max-w-3xl">
-                {emergingSpike.description}
-              </p>
-            </div>
-          </div>
 
-          <Link
-            to="/insights"
-            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 self-start md:self-center transition-colors shadow-xs"
-          >
-            <span>Triage Anomaly</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+              <div className="shrink-0 self-start md:self-center">
+                <Link
+                  to="/insights"
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1 shadow-xs transition-colors"
+                >
+                  <span>View Evidence</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          ))}
         </motion.div>
       )}
 
-      {/* Main 2-Column Content: Struggle Telemetry Chart + Top Problem Clusters */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 8 Cols: Telemetry Chart */}
-        <div className="lg:col-span-8 space-y-6">
+      {/* Main Grid: Telemetry Chart + Ranked Lists */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left 8 Cols: Telemetry Chart & Recent Ingestion Feed */}
+        <div className="lg:col-span-8 space-y-5">
           <TelemetryChart />
 
-          {/* AI Executive Synthesis Summary */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          {/* Recent Ingestion Stream Feed */}
+          <div className="p-5 rounded-2xl surface-card space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#171b26] pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
+                <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                  Trace Intelligence Synthesis
+                  Recent Ingested Statements
                 </h3>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">Updated 4m ago</span>
+              <Link
+                to="/inbox"
+                className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+              >
+                <span>View inbox ({feedbackList.length})</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </Link>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Customer friction in recent cycles is heavily concentrated in <strong>Mobile Stability (Android 15 crash loops)</strong> and <strong>Export Processing (large batch PDF generation timeouts)</strong>. Enterprise churn risk remains elevated for Okta SAML customers facing redirect loops.
-            </p>
+            <div className="space-y-2">
+              {feedbackList.length === 0 ? (
+                <div className="p-8 text-center border border-dashed border-slate-200 dark:border-[#1e2333] rounded-xl text-xs text-slate-400 space-y-1.5">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">No Feedback Statements Yet</p>
+                  <p className="text-[11px]">Upload a CSV or connect a source channel to ingest feedback.</p>
+                </div>
+              ) : (
+                feedbackList.slice(0, 4).map((fb) => (
+                  <div
+                    key={fb.id}
+                    className="p-3 rounded-xl bg-slate-50 dark:bg-[#0f121a] border border-slate-200/80 dark:border-[#1e2333] text-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {fb.customerName || 'Anonymous Account'}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-200/60 dark:bg-[#181d2a] text-slate-600 dark:text-slate-400 font-mono">
+                          {fb.customerSegmentName}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {new Date(fb.sourceCreatedAt).toLocaleDateString()}
+                      </span>
+                    </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Top Risk Segment</p>
-                <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">Enterprise Accounts (38%)</p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Primary Driver</p>
-                <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">App Crash on Startup</p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Recommended Action</p>
-                <p className="font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">Rollback v4.13.0 Engine</p>
-              </div>
+                    <p className="text-slate-700 dark:text-slate-300 text-[11px] line-clamp-2 leading-relaxed">
+                      "{fb.originalText}"
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right 4 Cols: Prioritized Opportunities & Top Problems */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* Right 4 Cols: Opportunities & Problem List */}
+        <div className="lg:col-span-4 space-y-5">
           {/* Actionable Opportunities */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="p-5 rounded-2xl surface-card space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#171b26] pb-3">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-amber-500" />
                 <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                  Ready for Decision
+                  Prioritized Opportunities
                 </h3>
               </div>
-              <Link to="/opportunities" className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
-                View all ({opportunities.length})
+              <Link
+                to="/opportunities"
+                className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+              >
+                <span>View all ({opportunities.length})</span>
+                <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
             <div className="space-y-2.5">
-              {suggestedOpportunities.slice(0, 3).map((opp) => (
-                <Link
-                  key={opp.id}
-                  to="/opportunities"
-                  className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800/80 block transition-colors group"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono-numbers font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30">
-                      Score: {opp.overallPriorityScore}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono-numbers">{opp.evidenceCount} quotes</span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    {opp.title}
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-                    {opp.problemStatement}
-                  </p>
-                </Link>
-              ))}
+              {suggestedOpportunities.length === 0 ? (
+                <p className="text-xs text-slate-400 p-4 text-center">No pending suggestions</p>
+              ) : (
+                suggestedOpportunities.slice(0, 3).map((opp) => (
+                  <Link
+                    key={opp.id}
+                    to="/opportunities"
+                    className="p-3 rounded-xl bg-slate-50 dark:bg-[#0f121a] hover:bg-slate-100/80 dark:hover:bg-[#161a26] border border-slate-200/80 dark:border-[#1e2333] block transition-all group"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                        Score: {opp.overallPriorityScore}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono-numbers">
+                        {opp.evidenceCount} links
+                      </span>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-snug">
+                      {opp.title}
+                    </h4>
+
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                      {opp.problemStatement}
+                    </p>
+                  </Link>
+                ))
+              )}
             </div>
           </div>
 
           {/* Top Problem Clusters */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="p-5 rounded-2xl surface-card space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#171b26] pb-3">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-indigo-500" />
                 <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
                   Top Problem Clusters
                 </h3>
               </div>
-              <Link to="/insights" className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
-                Explore
+              <Link
+                to="/insights"
+                className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+              >
+                <span>Details</span>
+                <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
             <div className="space-y-3">
-              {topProblems.map((p, idx) => (
-                <div key={p.id} className="space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900 dark:text-slate-100 truncate pr-2">
-                      {idx + 1}. {p.title}
-                    </span>
-                    <span className="font-mono-numbers text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
-                      {p.frequency} mentions
-                    </span>
+              {topProblems.length === 0 ? (
+                <p className="text-xs text-slate-400 p-4 text-center">No problem clusters synthesized yet</p>
+              ) : (
+                topProblems.map((p, idx) => (
+                  <div key={p.id} className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 dark:text-slate-100 truncate pr-2">
+                        {idx + 1}. {p.title}
+                      </span>
+                      <span className="font-mono-numbers text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
+                        {p.frequency} mentions
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-[#1a2030] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, (p.frequency / Math.max(...painPoints.map(item => item.frequency), 1)) * 100)}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-indigo-600 h-full rounded-full"
-                      style={{ width: `${Math.min(100, (p.frequency / 350) * 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

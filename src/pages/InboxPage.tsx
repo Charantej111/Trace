@@ -11,7 +11,8 @@ import {
   Search,
   MessageSquare,
   Clock,
-  Sparkles
+  Sparkles,
+  ArrowUpRight
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 
@@ -42,56 +43,56 @@ export function InboxPage() {
   });
 
   return (
-    <div className="space-y-5 text-slate-900 dark:text-slate-100">
+    <div className="space-y-4 text-slate-900 dark:text-slate-100">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-[#1a1e2b] pb-3">
         <div>
-          <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            Inbox & Ingestion Queue
+          <h1 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            Feedback Ingestion Queue & Triage
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Newly arrived customer statements requiring PM review and anomaly triage.
+            Real-time feed of arriving customer statements requiring PM verification and anomaly triage.
           </p>
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-[#0f121a] border border-slate-200 dark:border-[#1e2333] text-xs font-semibold">
           <button
             onClick={() => setFilterTab('all')}
-            className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
+            className={`px-3 py-1.5 rounded-lg transition-all ${
               filterTab === 'all'
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 card-shadow'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ? 'bg-white dark:bg-[#1a2030] text-slate-900 dark:text-white shadow-xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             All ({feedbackList.length})
           </button>
           <button
             onClick={() => setFilterTab('critical')}
-            className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
+            className={`px-3 py-1.5 rounded-lg transition-all ${
               filterTab === 'critical'
-                ? 'bg-rose-600 text-white card-shadow'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ? 'bg-rose-600 text-white shadow-xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            Critical
+            Critical Churn Risk
           </button>
           <button
             onClick={() => setFilterTab('unreviewed')}
-            className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
+            className={`px-3 py-1.5 rounded-lg transition-all ${
               filterTab === 'unreviewed'
-                ? 'bg-amber-600 text-white card-shadow'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ? 'bg-amber-600 text-white shadow-xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            Unreviewed
+            Low Ratings (≤2★)
           </button>
           <button
             onClick={() => setFilterTab('emerging')}
-            className={`px-3 py-1.5 rounded-lg transition-colors font-semibold flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
               filterTab === 'emerging'
-                ? 'bg-indigo-600 text-white card-shadow'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Flame className="w-3.5 h-3.5" />
@@ -102,74 +103,76 @@ export function InboxPage() {
 
       {/* Search Input Bar */}
       <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Filter incoming customer statements by keyword, client name, or atom payload..."
+          placeholder="Filter incoming customer statements by keyword, account name, or extracted atom payload..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 card-shadow transition-colors"
+          className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-[#0d0f15] border border-slate-200 dark:border-[#1e2333] text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 shadow-xs transition-colors"
         />
       </div>
 
       {/* Feed List */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {filteredItems.length === 0 ? (
-          <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 card-shadow text-xs text-slate-500 dark:text-slate-400 space-y-2">
+          <div className="p-12 text-center surface-card rounded-2xl text-xs text-slate-400 space-y-2">
             <Inbox className="w-8 h-8 text-slate-400 mx-auto" />
-            <p className="font-bold text-slate-700 dark:text-slate-300">No customer statements match criteria</p>
-            <p className="text-[11px]">Try clearing search filters or importing new feedback files.</p>
+            <p className="font-bold text-slate-700 dark:text-slate-300">No statements match selected triage filter</p>
+            <p className="text-[11px]">Try clearing search filters or importing a new feedback file.</p>
           </div>
         ) : (
           filteredItems.map((item) => {
             const hasCritical = item.atoms?.some(a => a.severity === 'critical');
-            const hasBug = item.atoms?.some(a => a.intent === 'bug_report');
 
             return (
               <div
                 key={item.id}
-                className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow card-shadow-hover space-y-3 text-xs transition-all"
+                className="p-4 rounded-2xl surface-card surface-card-hover space-y-2.5 text-xs transition-all"
               >
-                {/* Top Row: Customer & Source */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                {/* Top Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#171b26] pb-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 dark:text-slate-100">
-                      {item.customerName}
+                    <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-[#1a2030] text-slate-700 dark:text-slate-300 font-bold text-[10px] flex items-center justify-center font-mono">
+                      {(item.customerName || 'A').charAt(0)}
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {item.customerName || 'Anonymous Account'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-mono-numbers">
+                    <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-[#171a24] text-slate-600 dark:text-slate-400 text-[10px] font-mono">
                       {item.customerSegmentName}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase tracking-wider">
+                    <span className="px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase font-mono tracking-wider">
                       {item.sourceType}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono-numbers">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
                     <Clock className="w-3 h-3" />
                     <span>{new Date(item.sourceCreatedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                {/* Original Feedback Statement */}
+                {/* Feedback Verbatim */}
                 <p className="text-slate-800 dark:text-slate-200 text-xs leading-relaxed">
                   "{item.originalText}"
                 </p>
 
-                {/* Extracted Atoms Chips */}
+                {/* Atoms Chips */}
                 {item.atoms && item.atoms.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-                      Atoms:
+                    <span className="text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wider mr-1">
+                      EXTRACTED CLAUSES:
                     </span>
                     {item.atoms.map((atom) => (
                       <span
                         key={atom.id}
                         className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
                           atom.intent === 'bug_report'
-                            ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/30'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800/40'
                             : atom.intent === 'feature_request'
-                            ? 'bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800/30'
-                            : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30'
+                            ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border border-sky-200/80 dark:border-sky-800/40'
+                            : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/80 dark:border-amber-800/40'
                         }`}
                       >
                         {atom.intent.replace('_', ' ')} · {atom.severity}
@@ -178,17 +181,17 @@ export function InboxPage() {
                   </div>
                 )}
 
-                {/* Action Row */}
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-                  <span className="text-slate-500 font-mono">
-                    ID: {item.id}
+                {/* Footer Action */}
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-[#171b26] text-[11px]">
+                  <span className="text-slate-400 font-mono text-[10px]">
+                    TRACE ID: {item.id}
                   </span>
 
                   <Link
                     to="/feedback"
-                    className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1"
+                    className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1 font-mono text-xs"
                   >
-                    <span>Inspect Atoms in Explorer</span>
+                    <span>Open in Feedback Explorer</span>
                     <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>

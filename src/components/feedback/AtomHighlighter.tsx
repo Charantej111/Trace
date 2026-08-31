@@ -17,7 +17,7 @@ export function AtomHighlighter({
   className = ''
 }: AtomHighlighterProps) {
   if (!atoms || atoms.length === 0) {
-    return <p className={`text-slate-800 dark:text-slate-200 leading-relaxed ${className}`}>{originalText}</p>;
+    return <p className={`text-slate-800 dark:text-slate-200 leading-relaxed font-normal ${className}`}>{originalText}</p>;
   }
 
   // Sort atoms by character start offset
@@ -41,19 +41,19 @@ export function AtomHighlighter({
 
     if (atom.intent === 'bug_report') {
       highlightStyle = isSelected
-        ? 'span-tag-bug font-semibold border-b-2 ring-2 ring-rose-500/40'
+        ? 'span-tag-bug font-semibold border-b-2 ring-2 ring-rose-500/50 shadow-xs'
         : 'span-tag-bug hover:opacity-90';
     } else if (atom.intent === 'feature_request') {
       highlightStyle = isSelected
-        ? 'span-tag-request font-semibold border-b-2 ring-2 ring-sky-500/40'
+        ? 'span-tag-request font-semibold border-b-2 ring-2 ring-sky-500/50 shadow-xs'
         : 'span-tag-request hover:opacity-90';
     } else if (atom.intent === 'praise') {
       highlightStyle = isSelected
-        ? 'span-tag-praise font-semibold border-b-2 ring-2 ring-emerald-500/40'
+        ? 'span-tag-praise font-semibold border-b-2 ring-2 ring-emerald-500/50 shadow-xs'
         : 'span-tag-praise hover:opacity-90';
     } else if (atom.intent === 'complaint') {
       highlightStyle = isSelected
-        ? 'span-tag-complaint font-semibold border-b-2 ring-2 ring-amber-500/40'
+        ? 'span-tag-complaint font-semibold border-b-2 ring-2 ring-amber-500/50 shadow-xs'
         : 'span-tag-complaint hover:opacity-90';
     }
 
@@ -68,8 +68,8 @@ export function AtomHighlighter({
           e.stopPropagation();
           onSelectAtom && onSelectAtom(atom);
         }}
-        title={`Atom [${atom.sourceStart}:${atom.sourceEnd}] | Intent: ${atom.intent} | Severity: ${atom.severity}`}
-        className={`inline cursor-pointer transition-all duration-100 rounded-sm font-sans ${highlightStyle}`}
+        title={`Clause Atom: [${atom.sourceStart}:${atom.sourceEnd}] | Intent: ${atom.intent} | Severity: ${atom.severity}`}
+        className={`inline cursor-pointer transition-all duration-150 rounded-xs font-medium select-text ${highlightStyle}`}
       >
         {atomSlice}
       </span>

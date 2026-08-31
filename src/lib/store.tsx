@@ -55,7 +55,7 @@ interface TraceStoreContextType {
 
 const TraceStoreContext = createContext<TraceStoreContextType | null>(null);
 
-const STORAGE_KEY = 'trace_platform_state_v2';
+const STORAGE_KEY = 'trace_platform_clean_v4';
 
 export function TraceStoreProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);

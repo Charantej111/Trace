@@ -9,124 +9,155 @@ import {
   Kanban,
   History,
   Database,
-  Settings,
-  ChevronDown,
+  Sliders,
   Sparkles,
-  Sliders
+  ChevronDown
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 
 export function Sidebar() {
   const location = useLocation();
   const pathname = location.pathname;
-  const { feedbackList, painPoints, opportunities, decisions, roadmapItems } = useTraceStore();
+  const { workspace, feedbackList, painPoints, opportunities, roadmapItems, decisions } = useTraceStore();
 
-  const navItems = [
-    { name: 'Overview', href: '/', icon: LayoutDashboard },
-    { name: 'Inbox', href: '/inbox', icon: Inbox, badge: `${feedbackList.length}` },
-    { name: 'Feedback', href: '/feedback', icon: MessageSquare },
+  const suggestedOppsCount = opportunities.filter(o => o.status === 'suggested').length;
+  const criticalFeedCount = feedbackList.filter(f => f.atoms?.some(a => a.severity === 'critical')).length;
+  const emergingCount = painPoints.filter(p => p.isEmerging).length;
+
+  const navGroups = [
     {
-      name: 'Insights',
-      href: '/insights',
-      icon: Zap,
-      badge: `${painPoints.length}`,
-      badgeColor: 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300'
+      label: 'INTELLIGENCE',
+      items: [
+        { name: 'Overview', href: '/', icon: LayoutDashboard },
+        {
+          name: 'Feedback Inbox',
+          href: '/inbox',
+          icon: Inbox,
+          badge: criticalFeedCount > 0 ? `${criticalFeedCount} critical` : `${feedbackList.length}`,
+          badgeVariant: criticalFeedCount > 0 ? 'critical' : 'neutral'
+        },
+        { name: 'Feedback Explorer', href: '/feedback', icon: MessageSquare },
+        {
+          name: 'Problem Clusters',
+          href: '/insights',
+          icon: Zap,
+          badge: emergingCount > 0 ? `${emergingCount} spike` : `${painPoints.length}`,
+          badgeVariant: emergingCount > 0 ? 'critical' : 'indigo'
+        }
+      ]
     },
     {
-      name: 'Opportunities',
-      href: '/opportunities',
-      icon: Target,
-      badge: `${opportunities.filter(o => o.status === 'suggested').length}`,
-      badgeColor: 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+      label: 'DECISION & ROADMAP',
+      items: [
+        {
+          name: 'Opportunities',
+          href: '/opportunities',
+          icon: Target,
+          badge: suggestedOppsCount > 0 ? `${suggestedOppsCount}` : undefined,
+          badgeVariant: 'amber'
+        },
+        { name: 'Roadmap Telemetry', href: '/roadmap', icon: Kanban, badge: `${roadmapItems.length}` },
+        { name: 'Decision Memory (PDR)', href: '/decisions', icon: History, badge: `${decisions.length}` }
+      ]
     },
-    { name: 'Roadmap', href: '/roadmap', icon: Kanban, badge: `${roadmapItems.length}` },
-    { name: 'Decisions', href: '/decisions', icon: History, badge: `${decisions.length}` },
-    { name: 'Sources', href: '/sources', icon: Database },
-    { name: 'Settings', href: '/settings/context', icon: Settings }
+    {
+      label: 'CONFIGURATION',
+      items: [
+        { name: 'Data Sources', href: '/sources', icon: Database },
+        { name: 'Strategic Context', href: '/settings/context', icon: Sliders }
+      ]
+    }
   ];
 
   return (
-    <aside className="w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 h-screen sticky top-0 text-[13px] select-none shadow-[1px_0_2px_rgba(0,0,0,0.01)]">
+    <aside className="w-60 bg-slate-50/70 dark:bg-[#090b10] border-r border-slate-200/80 dark:border-[#1a1e2b] flex flex-col justify-between shrink-0 h-screen sticky top-0 text-[13px] select-none shadow-xs">
       <div className="flex flex-col h-full overflow-hidden">
         {/* Brand Header */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 font-extrabold text-slate-900 dark:text-slate-100 text-base tracking-tight group">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-xs group-hover:scale-105 transition-transform">
-              <Sparkles className="w-4 h-4 fill-white" />
+        <div className="px-4 py-3.5 border-b border-slate-200/70 dark:border-[#171b26] flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+              <Sparkles className="w-3.5 h-3.5 fill-white" />
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-base tracking-tight">Trace</span>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-600 dark:text-indigo-400 font-mono">v2.0</span>
-            </div>
+            <span className="font-bold tracking-tight text-slate-900 dark:text-white text-sm">
+              Trace
+            </span>
           </Link>
         </div>
 
-        {/* Workspace Identifier */}
-        <div className="p-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-              A
+        {/* Workspace Display */}
+        <div className="p-3 border-b border-slate-200/70 dark:border-[#171b26]">
+          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white dark:bg-[#0f121a] border border-slate-200/80 dark:border-[#1e2333] shadow-xs">
+            <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-[#1a2030] text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
+              {workspace.name.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate leading-tight">Acme Cloud Platform</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Production Workspace</p>
+              <p className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate leading-tight">
+                {workspace.name}
+              </p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                {workspace.productCategory || 'Workspace'}
+              </p>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
           </div>
         </div>
 
-        {/* Navigation Items */}
-        <div className="p-2 space-y-0.5 flex-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = item.href === '/'
-              ? pathname === '/'
-              : pathname.startsWith(item.href);
-            const Icon = item.icon;
+        {/* Grouped Navigation Links */}
+        <div className="p-3 space-y-4 flex-1 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.label} className="space-y-1">
+              <span className="px-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider font-mono">
+                {group.label}
+              </span>
 
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                  <span className="truncate">{item.name}</span>
-                </div>
+              <div className="space-y-0.5 pt-0.5">
+                {group.items.map((item) => {
+                  const isActive = item.href === '/'
+                    ? pathname === '/'
+                    : pathname.startsWith(item.href);
+                  const Icon = item.icon;
 
-                {item.badge && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono-numbers font-bold ${
-                    item.badgeColor || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                  }`}>
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs ring-1 ring-indigo-200 dark:ring-indigo-800/40'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-[#131620]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon
+                          className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                            isActive
+                              ? 'text-indigo-600 dark:text-indigo-400'
+                              : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                          }`}
+                        />
+                        <span className="truncate">{item.name}</span>
+                      </div>
 
-        {/* Bottom Strategic Context Indicator */}
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <Link
-            to="/settings/context"
-            className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors text-[11px]"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Sliders className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <div className="truncate">
-                <p className="font-bold text-slate-900 dark:text-slate-100 leading-tight">Strategic Context</p>
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Active & Weighting</p>
+                      {item.badge && (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono-numbers font-bold ${
+                            item.badgeVariant === 'critical'
+                              ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40'
+                              : item.badgeVariant === 'amber'
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
+                              : item.badgeVariant === 'indigo'
+                              ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40'
+                              : 'bg-slate-100 dark:bg-[#171b26] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-            <span className="text-[10px] px-1 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-mono font-bold">
-              3 Goals
-            </span>
-          </Link>
+          ))}
         </div>
       </div>
     </aside>

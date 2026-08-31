@@ -7,11 +7,10 @@ import {
   Apple,
   MessageSquare,
   CheckCircle2,
-  Lock,
-  ArrowRight,
-  ChevronRight,
   X,
-  Sparkles
+  Sparkles,
+  Radio,
+  Plus
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 import Papa from 'papaparse';
@@ -22,13 +21,13 @@ export function SourcesPage() {
   const { addToast } = useToast();
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const [csvFileName, setCsvFileName] = useState('');
   const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const [feedbackColumn, setFeedbackColumn] = useState('feedback');
-  const [customerColumn, setCustomerColumn] = useState('customer_name');
+  const [feedbackColumn, setFeedbackColumn] = useState('');
+  const [customerColumn, setCustomerColumn] = useState('');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,22 +79,36 @@ export function SourcesPage() {
 
       addToast({
         type: 'success',
-        title: 'CSV Import Complete',
-        description: `Ingested ${records.length} customer feedback statements into queue.`
+        title: 'CSV Ingested',
+        description: `Successfully ingested and parsed ${records.length} customer feedback items.`
       });
-    }, 1000);
+    }, 600);
+  };
+
+  const getSourceIcon = (type: string) => {
+    switch (type) {
+      case 'google_play':
+        return Play;
+      case 'app_store':
+        return Apple;
+      case 'zendesk':
+      case 'intercom':
+        return MessageSquare;
+      default:
+        return FileSpreadsheet;
+    }
   };
 
   return (
-    <div className="space-y-6 text-slate-900 dark:text-slate-100">
+    <div className="space-y-4 text-slate-900 dark:text-slate-100">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-[#1a1e2b] pb-3">
         <div>
-          <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            Ingestion Sources & Channels
+          <h1 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            Data Sources & Connectors
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Configure automated feedback connectors and upload flat files with auto-atomization.
+            Registered channels supplying customer feedback statements.
           </p>
         </div>
 
@@ -105,7 +118,7 @@ export function SourcesPage() {
               setWizardStep(1);
               setIsUploadModalOpen(true);
             }}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs card-shadow transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Upload CSV File</span>
@@ -113,162 +126,67 @@ export function SourcesPage() {
         </div>
       </div>
 
-      {/* Connected Channels Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* CSV Channel */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 text-xs">
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <FileSpreadsheet className="w-5 h-5" />
+      {/* Dynamic Data Sources Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        {sources.map((src) => {
+          const Icon = getSourceIcon(src.type);
+          const feedbackCount = feedbackList.filter(
+            f => f.sourceType === src.type || f.sourceId === src.id
+          ).length || src.recordCount || 0;
+
+          return (
+            <div
+              key={src.id}
+              className="p-4 rounded-2xl surface-card space-y-3 text-xs"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#161a26] text-slate-700 dark:text-slate-300 flex items-center justify-center ring-1 ring-slate-200 dark:ring-[#262f44]">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                  src.status === 'active'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/40'
+                    : 'bg-slate-100 dark:bg-[#161a26] text-slate-500'
+                }`}>
+                  {src.status}
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-xs">
+                  {src.name}
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] font-mono mt-0.5 uppercase">
+                  TYPE: {src.type.replace('_', ' ')}
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-[#171b26] flex items-center justify-between text-[11px] font-mono">
+                <span className="text-slate-500">Ingested Count:</span>
+                <strong className="text-slate-900 dark:text-white font-bold font-mono-numbers">
+                  {feedbackCount}
+                </strong>
+              </div>
+
+              {src.lastSyncedAt && (
+                <div className="text-[10px] text-slate-400 font-mono">
+                  Last Synced: {new Date(src.lastSyncedAt).toLocaleString()}
+                </div>
+              )}
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
-              Active
-            </span>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">CSV & Flat File Ingestion</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-              Custom batches with sentence clause atomization.
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono-numbers">
-            <span className="text-slate-500">Statements Ingested:</span>
-            <strong className="text-slate-900 dark:text-slate-100 font-bold">{feedbackList.length}</strong>
-          </div>
-        </div>
-
-        {/* Google Play */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 text-xs">
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Play className="w-5 h-5" />
-            </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/30">
-              Connected
-            </span>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Google Play Store</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-              Live app reviews synced hourly for Android builds.
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono-numbers">
-            <span className="text-slate-500">Last Synced:</span>
-            <span className="text-slate-700 dark:text-slate-300 font-semibold">12m ago</span>
-          </div>
-        </div>
-
-        {/* Apple App Store */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 text-xs">
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 flex items-center justify-center">
-              <Apple className="w-5 h-5" />
-            </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
-              Connected
-            </span>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Apple App Store</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-              iOS customer reviews and ratings stream.
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono-numbers">
-            <span className="text-slate-500">Last Synced:</span>
-            <span className="text-slate-700 dark:text-slate-300 font-semibold">25m ago</span>
-          </div>
-        </div>
-
-        {/* Zendesk */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 text-xs">
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
-              Connected
-            </span>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Zendesk Support Tickets</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-              Enterprise customer struggle tickets and bug reports.
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono-numbers">
-            <span className="text-slate-500">Last Synced:</span>
-            <span className="text-slate-700 dark:text-slate-300 font-semibold">1h ago</span>
-          </div>
-        </div>
-
-        {/* Intercom */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 text-xs">
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
-              Connected
-            </span>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Intercom In-App Messenger</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-              Live in-product user conversations and complaints.
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono-numbers">
-            <span className="text-slate-500">Last Synced:</span>
-            <span className="text-slate-700 dark:text-slate-300 font-semibold">3h ago</span>
-          </div>
-        </div>
-
-        {/* Sales Calls Transcripts */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 card-shadow space-y-3 text-xs">
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <Database className="w-5 h-5" />
-            </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
-              Connected
-            </span>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Gong / Sales Calls Transcripts</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
-              Prospect deal blockers and lost reason mentions.
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono-numbers">
-            <span className="text-slate-500">Last Synced:</span>
-            <span className="text-slate-700 dark:text-slate-300 font-semibold">4h ago</span>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* CSV Ingestion Wizard Modal */}
+      {/* CSV Upload Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 card-shadow overflow-hidden text-xs space-y-4 p-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="w-full max-w-lg bg-white dark:bg-[#0d0f15] rounded-2xl border border-slate-200 dark:border-[#1e2333] shadow-2xl overflow-hidden text-xs space-y-4 p-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#171b26] pb-3">
               <div className="flex items-center gap-2">
                 <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  CSV Ingestion & Auto-Atomizer
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Ingest CSV Feedback
                 </h3>
               </div>
               <button onClick={() => setIsUploadModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -276,14 +194,14 @@ export function SourcesPage() {
               </button>
             </div>
 
-            {/* Step 1: Upload File */}
+            {/* Step 1: Upload */}
             {wizardStep === 1 && (
               <div className="space-y-4">
-                <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center space-y-3 hover:border-indigo-500 transition-colors">
+                <div className="border-2 border-dashed border-slate-300 dark:border-[#1e2333] rounded-2xl p-8 text-center space-y-3">
                   <Upload className="w-8 h-8 text-indigo-600 mx-auto" />
                   <div>
                     <label className="cursor-pointer px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs inline-block shadow-xs transition-colors">
-                      <span>Choose CSV File</span>
+                      <span>Select CSV File</span>
                       <input
                         type="file"
                         accept=".csv"
@@ -291,7 +209,7 @@ export function SourcesPage() {
                         className="hidden"
                       />
                     </label>
-                    <p className="text-[11px] text-slate-400 mt-2">or drag and drop a CSV file here</p>
+                    <p className="text-[11px] text-slate-400 mt-2">Supports any standard CSV feedback export</p>
                   </div>
                 </div>
               </div>
@@ -302,21 +220,21 @@ export function SourcesPage() {
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/30 flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-slate-100">{csvFileName}</p>
-                    <p className="text-[11px] text-slate-500">{parsedRows.length} rows parsed</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{csvFileName}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">{parsedRows.length} rows parsed</p>
                   </div>
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 </div>
 
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700 dark:text-slate-300 block">
-                      Feedback Statement Column <span className="text-rose-500">*</span>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block font-mono text-[11px]">
+                      FEEDBACK TEXT COLUMN <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={feedbackColumn}
                       onChange={(e) => setFeedbackColumn(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:outline-none"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#090b10] border border-slate-200 dark:border-[#1e2333] text-xs font-semibold focus:outline-none"
                     >
                       {parsedRows[0] &&
                         Object.keys(parsedRows[0]).map((col) => (
@@ -328,13 +246,13 @@ export function SourcesPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700 dark:text-slate-300 block">
-                      Customer / User Name Column
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block font-mono text-[11px]">
+                      CUSTOMER NAME COLUMN
                     </label>
                     <select
                       value={customerColumn}
                       onChange={(e) => setCustomerColumn(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:outline-none"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#090b10] border border-slate-200 dark:border-[#1e2333] text-xs font-semibold focus:outline-none"
                     >
                       {parsedRows[0] &&
                         Object.keys(parsedRows[0]).map((col) => (
@@ -346,10 +264,10 @@ export function SourcesPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-[#171b26]">
                   <button
                     onClick={() => setWizardStep(1)}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold"
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161a26] text-slate-700 dark:text-slate-300 font-semibold"
                   >
                     Back
                   </button>
@@ -359,11 +277,11 @@ export function SourcesPage() {
                     className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center gap-1.5 shadow-xs transition-colors"
                   >
                     {isProcessing ? (
-                      <span>Atomizing Statements...</span>
+                      <span>Ingesting...</span>
                     ) : (
                       <>
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>Run Atomizer & Ingest</span>
+                        <span>Confirm & Ingest</span>
                       </>
                     )}
                   </button>
