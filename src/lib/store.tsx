@@ -37,7 +37,12 @@ interface TraceStoreContextType {
   workspace: Workspace;
   productContext: ProductContext;
   updateProductContext: (newContext: Partial<ProductContext>) => void;
+  addCompanyGoal: (goal: { goal: string; priority: 'high' | 'medium' | 'low' }) => void;
+  deleteCompanyGoal: (id: string) => void;
   customerSegments: CustomerSegment[];
+  addCustomerSegment: (segment: { name: string; description?: string; strategicWeight: number }) => void;
+  updateCustomerSegment: (id: string, updates: Partial<CustomerSegment>) => void;
+  deleteCustomerSegment: (id: string) => void;
   sources: FeedbackSource[];
   importJobs: ImportJob[];
   feedbackList: Feedback[];
@@ -48,6 +53,7 @@ interface TraceStoreContextType {
   decisions: ProductDecision[];
   roadmapItems: RoadmapItem[];
   isDemoMode: boolean;
+
 
   // Processing state & live progress
   activeJob: ProcessingJob | null;
@@ -84,7 +90,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
   const [isHydrated, setIsHydrated] = useState(false);
   const [workspace] = useState<Workspace>(INITIAL_WORKSPACE);
   const [productContext, setProductContext] = useState<ProductContext>(INITIAL_PRODUCT_CONTEXT);
-  const [customerSegments] = useState<CustomerSegment[]>(INITIAL_CUSTOMER_SEGMENTS);
+  const [customerSegments, setCustomerSegments] = useState<CustomerSegment[]>(INITIAL_CUSTOMER_SEGMENTS);
 
   const [sources, setSources] = useState<FeedbackSource[]>([]);
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
@@ -148,6 +154,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.productContext) setProductContext(parsed.productContext);
+        if (parsed.customerSegments) setCustomerSegments(parsed.customerSegments);
         if (parsed.isDemoMode !== undefined) setIsDemoMode(parsed.isDemoMode);
         if (parsed.importJobs) setImportJobs(parsed.importJobs);
 
@@ -176,6 +183,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     try {
       const stateToSave = {
         productContext,
+        customerSegments,
         feedbackList,
         themes,
         painPoints,
@@ -194,6 +202,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
   }, [
     isHydrated,
     productContext,
+    customerSegments,
     feedbackList,
     themes,
     painPoints,
@@ -213,6 +222,49 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
       updatedAt: new Date().toISOString()
     }));
   };
+
+  const addCompanyGoal = (goal: { goal: string; priority: 'high' | 'medium' | 'low' }) => {
+    if (!goal.goal.trim()) return;
+    const newGoal = {
+      id: `goal-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      goal: goal.goal.trim(),
+      priority: goal.priority
+    };
+    setProductContext(prev => ({
+      ...prev,
+      companyGoals: [...prev.companyGoals, newGoal],
+      updatedAt: new Date().toISOString()
+    }));
+  };
+
+  const deleteCompanyGoal = (id: string) => {
+    setProductContext(prev => ({
+      ...prev,
+      companyGoals: prev.companyGoals.filter(g => g.id !== id),
+      updatedAt: new Date().toISOString()
+    }));
+  };
+
+  const addCustomerSegment = (segment: { name: string; description?: string; strategicWeight: number }) => {
+    if (!segment.name.trim()) return;
+    const newSeg: CustomerSegment = {
+      id: `seg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      workspaceId: workspace.id,
+      name: segment.name.trim(),
+      description: segment.description?.trim() || 'Custom strategic tier',
+      strategicWeight: segment.strategicWeight || 1.0
+    };
+    setCustomerSegments(prev => [...prev, newSeg]);
+  };
+
+  const updateCustomerSegment = (id: string, updates: Partial<CustomerSegment>) => {
+    setCustomerSegments(prev => prev.map(s => (s.id === id ? { ...s, ...updates } : s)));
+  };
+
+  const deleteCustomerSegment = (id: string) => {
+    setCustomerSegments(prev => prev.filter(s => s.id !== id));
+  };
+
 
   /**
    * Ingestion Action:
@@ -252,7 +304,35 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     };
     await FeedbackRepo.saveSource(newSource);
 
-    // 3. Register Import Job Log
+    // 3. Auto-discover segments from imported records
+    let currentSegments = customerSegments;
+    const newSegNames = new Set<string>();
+    records.forEach(r => {
+      const seg = r.segment || r.customer?.segment;
+      if (seg && seg.trim()) newSegNames.add(seg.trim());
+    });
+    if (newSegNames.size > 0) {
+      const existingNames = new Set(customerSegments.map(s => s.name.toLowerCase()));
+      const additions: CustomerSegment[] = [];
+      newSegNames.forEach(name => {
+        if (!existingNames.has(name.toLowerCase())) {
+          existingNames.add(name.toLowerCase());
+          additions.push({
+            id: `seg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            workspaceId: workspace.id,
+            name,
+            description: 'Discovered from imported evidence',
+            strategicWeight: 1.0
+          });
+        }
+      });
+      if (additions.length > 0) {
+        currentSegments = [...customerSegments, ...additions];
+        setCustomerSegments(currentSegments);
+      }
+    }
+
+    // 4. Register Import Job Log
     const newImportJob: ImportJob = {
       id: importId,
       workspaceId: workspace.id,
@@ -272,7 +352,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     setImportJobs(prev => [newImportJob, ...prev]);
     setIsDemoMode(false);
 
-    // 4. Create and execute durable processing job through Orchestrator
+    // 5. Create and execute durable processing job through Orchestrator
     const job = await ProcessingOrchestrator.createJob({
       workspaceId: workspace.id,
       importId,
@@ -280,9 +360,10 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
       type: 'import'
     });
 
-    await ProcessingOrchestrator.executeJob(job.id, productContext, customerSegments);
+    await ProcessingOrchestrator.executeJob(job.id, productContext, currentSegments);
     await refreshFromRepositories();
   };
+
 
   const recordDecision = async (
     opportunityId: string,
@@ -440,6 +521,12 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     setRoadmapItems([]);
     setSources([]);
     setImportJobs([]);
+    setCustomerSegments([]);
+    setProductContext(prev => ({
+      ...prev,
+      companyGoals: [],
+      targetSegments: []
+    }));
     setIsDemoMode(false);
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -450,7 +537,12 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         workspace,
         productContext,
         updateProductContext,
+        addCompanyGoal,
+        deleteCompanyGoal,
         customerSegments,
+        addCustomerSegment,
+        updateCustomerSegment,
+        deleteCustomerSegment,
         sources,
         importJobs,
         feedbackList,
@@ -473,6 +565,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         clearWorkspaceData
       }}
     >
+
 
       {children}
     </TraceStoreContext.Provider>

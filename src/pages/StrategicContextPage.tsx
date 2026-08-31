@@ -1,35 +1,41 @@
 import React, { useState } from 'react';
 import { useTraceStore } from '@/lib/store';
 import {
-  Sliders,
   Target,
   Users,
-  ShieldCheck,
-  Plus,
-  Check,
   RotateCcw,
   Trash2,
   AlertTriangle,
   Loader2,
   User,
-  Building,
-  Database,
-  X
+  X,
+  Plus
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 export function StrategicContextPage() {
   const {
     workspace,
     productContext,
-    updateProductContext,
+    addCompanyGoal,
+    deleteCompanyGoal,
     customerSegments,
+    addCustomerSegment,
+    updateCustomerSegment,
+    deleteCustomerSegment,
     resetToDemoData,
     clearWorkspaceData
   } = useTraceStore();
   const { addToast } = useToast();
 
-  const [newGoal, setNewGoal] = useState('');
+  const [newGoalText, setNewGoalText] = useState('');
+  const [newGoalPriority, setNewGoalPriority] = useState<'high' | 'medium' | 'low'>('high');
+
+  const [newSegmentName, setNewSegmentName] = useState('');
+  const [newSegmentDesc, setNewSegmentDesc] = useState('');
+  const [newSegmentWeight, setNewSegmentWeight] = useState<number>(1.2);
+
   const [showResetModal, setShowResetModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -37,20 +43,56 @@ export function StrategicContextPage() {
 
   const handleAddGoal = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGoal.trim()) return;
+    if (!newGoalText.trim()) return;
 
-    const updatedGoals = [
-      ...productContext.companyGoals,
-      { id: `goal-${Date.now()}`, goal: newGoal.trim(), priority: 'high' as const }
-    ];
-
-    updateProductContext({ companyGoals: updatedGoals });
-    setNewGoal('');
+    addCompanyGoal({
+      goal: newGoalText.trim(),
+      priority: newGoalPriority
+    });
+    setNewGoalText('');
 
     addToast({
       type: 'success',
       title: 'Strategic Goal Added',
-      description: `Added "${newGoal.trim()}" to strategic context.`
+      description: `Added "${newGoalText.trim()}" to strategic context.`
+    });
+  };
+
+  const handleDeleteGoal = (id: string, goalText: string) => {
+    deleteCompanyGoal(id);
+    addToast({
+      type: 'info',
+      title: 'Goal Removed',
+      description: `Removed goal "${goalText.slice(0, 30)}..."`
+    });
+  };
+
+  const handleAddSegment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSegmentName.trim()) return;
+
+    addCustomerSegment({
+      name: newSegmentName.trim(),
+      description: newSegmentDesc.trim() || 'Custom strategic tier',
+      strategicWeight: Number(newSegmentWeight) || 1.0
+    });
+    setNewSegmentName('');
+    setNewSegmentDesc('');
+    setNewSegmentWeight(1.2);
+
+    addToast({
+      type: 'success',
+      title: 'Customer Segment Added',
+      description: `Added segment "${newSegmentName.trim()}" with weight ${newSegmentWeight}x.`
+    });
+  };
+
+  const handleDeleteSegment = (id: string, name: string) => {
+    deleteCustomerSegment(id);
+    addToast({
+      type: 'info',
+      title: 'Segment Removed',
+      description: `Removed customer segment "${name}".`
     });
   };
 
@@ -83,7 +125,7 @@ export function StrategicContextPage() {
       addToast({
         type: 'info',
         title: 'Workspace Cleared',
-        description: 'All feedback records, atoms, and derived intelligence removed.'
+        description: 'All feedback records, atoms, goals, segments, and derived intelligence removed.'
       });
       setShowClearModal(false);
     } catch (err) {
@@ -107,7 +149,7 @@ export function StrategicContextPage() {
             Profile & Product Settings
           </h1>
           <p className="text-xs text-slate-500 dark:text-[#8C92A4] mt-0.5 font-mono">
-            Manage your profile, strategic objectives, customer segments, and workspace state.
+            Manage your profile, dynamic strategic objectives, customer segments, and workspace state.
           </p>
         </div>
       </div>
@@ -142,9 +184,9 @@ export function StrategicContextPage() {
         </div>
       </div>
 
-      {/* Grid of Strategy & Segments */}
+      {/* Grid of Dynamic Strategy & Customer Segments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Company Goals */}
+        {/* Dynamic Company Goals */}
         <div className="p-4 rounded-xl surface-card space-y-3.5">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1F232B] pb-2.5">
             <h2 className="text-xs font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider flex items-center gap-2">
@@ -153,39 +195,73 @@ export function StrategicContextPage() {
             </h2>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 min-h-24">
             {productContext.companyGoals.length === 0 ? (
-              <p className="text-xs text-slate-400 dark:text-[#525866] py-2 font-mono">No custom strategic goals added yet.</p>
+              <div className="p-4 rounded-lg surface-subtle text-center text-xs text-slate-400 dark:text-[#64748B] space-y-1">
+                <p className="font-semibold text-slate-600 dark:text-[#8C92A4]">No strategic goals configured</p>
+                <p className="text-[11px]">Add company strategic objectives below to influence opportunity scoring.</p>
+              </div>
             ) : (
               productContext.companyGoals.map(g => (
-                <div key={g.id} className="p-3 rounded-lg surface-subtle text-xs flex items-center justify-between">
-                  <span className="font-medium text-slate-800 dark:text-[#EDEDED]">{g.goal}</span>
-                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] uppercase border border-[#2E8B75]/20 shrink-0 ml-2">
-                    {g.priority}
-                  </span>
+                <div key={g.id} className="p-3 rounded-lg surface-subtle text-xs flex items-center justify-between gap-2 group">
+                  <span className="font-medium text-slate-800 dark:text-[#EDEDED] flex-1">{g.goal}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                      g.priority === 'high'
+                        ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
+                        : g.priority === 'medium'
+                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60'
+                        : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}>
+                      {g.priority}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteGoal(g.id, g.goal)}
+                      title="Delete Goal"
+                      className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-[#1E232B] transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
           </div>
 
-          <form onSubmit={handleAddGoal} className="flex gap-2 pt-1">
-            <input
-              type="text"
-              value={newGoal}
-              onChange={e => setNewGoal(e.target.value)}
-              placeholder="Add new company strategic goal..."
-              className="flex-1 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#181B22] border border-slate-200 dark:border-[#232833] text-xs text-slate-900 dark:text-[#EDEDED] focus:outline-none focus:border-[#2E8B75]"
-            />
-            <button
-              type="submit"
-              className="px-3.5 py-1.5 rounded-lg bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold text-xs transition-colors shrink-0 shadow-2xs"
-            >
-              Add Goal
-            </button>
+          {/* Add Goal Form */}
+          <form onSubmit={handleAddGoal} className="space-y-2 pt-1 border-t border-slate-100 dark:border-[#1F232B]">
+            <span className="text-[11px] font-mono text-slate-400 block font-semibold">ADD STRATEGIC GOAL</span>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newGoalText}
+                onChange={e => setNewGoalText(e.target.value)}
+                placeholder="e.g. Reduce Enterprise onboarding friction and latency..."
+                className="flex-1 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#181B22] border border-slate-200 dark:border-[#232833] text-xs text-slate-900 dark:text-[#EDEDED] focus:outline-none focus:border-[#2E8B75]"
+              />
+              <CustomSelect
+                options={[
+                  { value: 'high', label: 'High' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'low', label: 'Low' }
+                ]}
+                value={newGoalPriority}
+                onChange={val => setNewGoalPriority(val as 'high' | 'medium' | 'low')}
+                className="w-28"
+              />
+              <button
+                type="submit"
+                className="px-3.5 py-1.5 rounded-lg bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold text-xs transition-colors shrink-0 shadow-2xs flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add</span>
+              </button>
+            </div>
           </form>
         </div>
 
-        {/* Customer Segments & Strategic Weights */}
+
+        {/* Dynamic Customer Segments & Strategic Weights */}
         <div className="p-4 rounded-xl surface-card space-y-3.5">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1F232B] pb-2.5">
             <h2 className="text-xs font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider flex items-center gap-2">
@@ -194,28 +270,99 @@ export function StrategicContextPage() {
             </h2>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 min-h-24">
             {customerSegments.length === 0 ? (
-              <p className="text-xs text-slate-400 dark:text-[#525866] py-2 font-mono">No custom customer segments configured.</p>
+              <div className="p-4 rounded-lg surface-subtle text-center text-xs text-slate-400 dark:text-[#64748B] space-y-1">
+                <p className="font-semibold text-slate-600 dark:text-[#8C92A4]">No customer segments configured</p>
+                <p className="text-[11px]">Add segments below or import feedback containing segment tags.</p>
+              </div>
             ) : (
               customerSegments.map(seg => (
-                <div key={seg.id} className="p-3 rounded-lg surface-subtle text-xs flex items-center justify-between">
-                  <div>
+                <div key={seg.id} className="p-3 rounded-lg surface-subtle text-xs flex items-center justify-between gap-2 group">
+                  <div className="min-w-0 flex-1">
                     <span className="font-semibold text-slate-900 dark:text-[#EDEDED]">{seg.name}</span>
-                    <span className="text-[11px] text-slate-500 dark:text-[#8C92A4] ml-2">({seg.description || 'Strategic Tier'})</span>
+                    <span className="text-[11px] text-slate-500 dark:text-[#8C92A4] ml-2 block sm:inline">
+                      ({seg.description || 'Strategic Tier'})
+                    </span>
                   </div>
-                  <span className="font-mono text-xs font-semibold text-slate-600 dark:text-[#8C92A4]">
-                    Weight: {seg.strategicWeight}x
-                  </span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 bg-white dark:bg-[#181B22] border border-slate-200 dark:border-[#232833] rounded px-1.5 py-0.5">
+                      <span className="text-[10px] text-slate-400 font-mono">Weight:</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="5.0"
+                        value={seg.strategicWeight}
+                        onChange={e => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val) && val > 0) {
+                            updateCustomerSegment(seg.id, { strategicWeight: val });
+                          }
+                        }}
+                        className="w-12 bg-transparent text-xs font-mono font-bold text-slate-900 dark:text-[#EDEDED] text-center focus:outline-none"
+                      />
+                      <span className="text-[10px] text-slate-400 font-mono">x</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteSegment(seg.id, seg.name)}
+                      title="Delete Segment"
+                      className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-[#1E232B] transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
           </div>
 
+          {/* Add Segment Form */}
+          <form onSubmit={handleAddSegment} className="space-y-2 pt-1 border-t border-slate-100 dark:border-[#1F232B]">
+            <span className="text-[11px] font-mono text-slate-400 block font-semibold">ADD CUSTOMER SEGMENT</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input
+                type="text"
+                value={newSegmentName}
+                onChange={e => setNewSegmentName(e.target.value)}
+                placeholder="Segment Name (e.g. Enterprise)..."
+                className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#181B22] border border-slate-200 dark:border-[#232833] text-xs text-slate-900 dark:text-[#EDEDED] focus:outline-none focus:border-[#2E8B75]"
+              />
+              <input
+                type="text"
+                value={newSegmentDesc}
+                onChange={e => setNewSegmentDesc(e.target.value)}
+                placeholder="Description / Criteria..."
+                className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#181B22] border border-slate-200 dark:border-[#232833] text-xs text-slate-900 dark:text-[#EDEDED] focus:outline-none focus:border-[#2E8B75]"
+              />
+              <div className="flex gap-1.5">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="5.0"
+                  value={newSegmentWeight}
+                  onChange={e => setNewSegmentWeight(parseFloat(e.target.value) || 1.0)}
+                  placeholder="Weight"
+                  className="w-20 px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-[#181B22] border border-slate-200 dark:border-[#232833] text-xs font-mono text-slate-900 dark:text-[#EDEDED] text-center focus:outline-none focus:border-[#2E8B75]"
+                />
+                <button
+                  type="submit"
+                  className="flex-1 px-3 py-1.5 rounded-lg bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold text-xs transition-colors shadow-2xs flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
           <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#181B22] border border-slate-200/80 dark:border-[#232833] text-xs text-slate-600 dark:text-[#8C92A4] space-y-1">
             <p className="font-semibold text-slate-800 dark:text-[#EDEDED]">Scoring Formula Active:</p>
             <p className="font-mono text-[11px] text-slate-500 dark:text-[#525866]">
-              Priority Score = Frequency(25%) + Severity(25%) + Trend(15%) + Segment(20%) + Strategy(15%)
+              Priority Score = Frequency(25%) + Severity(25%) + Trend(15%) + Segment Weight(20%) + Strategic Fit(15%)
             </p>
           </div>
         </div>
@@ -349,7 +496,7 @@ export function StrategicContextPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-[#A0A6B5] leading-relaxed">
-              This will completely wipe all feedback statements, atoms, themes, pain points, insights, opportunities, and decisions in this workspace.
+              This will completely wipe all feedback statements, atoms, themes, pain points, insights, opportunities, company goals, customer segments, and decisions in this workspace.
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-[#1F232B]">

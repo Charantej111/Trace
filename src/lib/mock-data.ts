@@ -16,26 +16,15 @@ export const INITIAL_WORKSPACE: Workspace = {
 
 export const INITIAL_PRODUCT_CONTEXT: ProductContext = {
   workspaceId: 'ws-default',
-  companyGoals: [
-    { id: 'goal-1', goal: 'Reduce Enterprise onboarding friction and time-to-value', priority: 'high' },
-    { id: 'goal-2', goal: 'Eliminate data export and reporting latency bugs', priority: 'high' },
-    { id: 'goal-3', goal: 'Enhance automated audit trails and access governance', priority: 'medium' }
-  ],
-  targetSegments: [
-    { segmentId: 'seg-ent', name: 'Enterprise', weight: 1.5 },
-    { segmentId: 'seg-mid', name: 'Mid-Market', weight: 1.2 },
-    { segmentId: 'seg-smb', name: 'SMB', weight: 1.0 }
-  ],
-  strategicFocusAreas: ['Reporting Performance', 'SSO & Permissions', 'Audit Lineage', 'Export Capacity'],
-  knownConstraints: ['SOC2 Compliance', 'Zero data retention without encryption'],
+  companyGoals: [],
+  targetSegments: [],
+  strategicFocusAreas: [],
+  knownConstraints: [],
   updatedAt: new Date().toISOString()
 };
 
-export const INITIAL_CUSTOMER_SEGMENTS: CustomerSegment[] = [
-  { id: 'seg-ent', workspaceId: 'ws-default', name: 'Enterprise', description: 'Annual contract > $50k', strategicWeight: 1.5 },
-  { id: 'seg-mid', workspaceId: 'ws-default', name: 'Mid-Market', description: 'Annual contract $10k-$50k', strategicWeight: 1.2 },
-  { id: 'seg-smb', workspaceId: 'ws-default', name: 'SMB', description: 'Self-serve and starter accounts', strategicWeight: 1.0 }
-];
+export const INITIAL_CUSTOMER_SEGMENTS: CustomerSegment[] = [];
+
 
 export interface RawSampleFeedbackItem {
   text: string;

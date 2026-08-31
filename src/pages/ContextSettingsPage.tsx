@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 export function ContextSettingsPage() {
   const { productContext, updateProductContext, customerSegments } = useTraceStore();
@@ -120,15 +121,17 @@ export function ContextSettingsPage() {
             onChange={(e) => setNewGoalText(e.target.value)}
             className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#090b10] border border-slate-200 dark:border-[#1e2333] text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
           />
-          <select
+          <CustomSelect
+            options={[
+              { value: 'high', label: 'High Priority' },
+              { value: 'medium', label: 'Medium Priority' },
+              { value: 'low', label: 'Low Priority' }
+            ]}
             value={newGoalPriority}
-            onChange={(e) => setNewGoalPriority(e.target.value as 'high' | 'medium' | 'low')}
-            className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#090b10] border border-slate-200 dark:border-[#1e2333] text-xs font-semibold focus:outline-none font-mono"
-          >
-            <option value="high">High Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="low">Low Priority</option>
-          </select>
+            onChange={(val) => setNewGoalPriority(val as 'high' | 'medium' | 'low')}
+            className="w-36"
+          />
+
           <button
             onClick={handleAddGoal}
             className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs flex items-center gap-1 shadow-xs hover:opacity-90 transition-opacity"

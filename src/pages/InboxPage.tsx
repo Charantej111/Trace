@@ -11,6 +11,7 @@ import {
 import { useTraceStore } from '@/lib/store';
 import { Feedback } from '@/types/trace';
 import { FeedbackDetailDrawer } from '@/components/feedback/FeedbackDetailDrawer';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import {
   isVerifiedAtom,
   getVerifiedAtoms,
@@ -282,74 +283,78 @@ export function InboxPage() {
         </div>
 
         {/* Source Filter */}
-        <select
+        <CustomSelect
+          options={[
+            { value: 'all', label: 'All Sources' },
+            ...availableSources.map((src) => ({
+              value: src,
+              label: formatSourceType(src)
+            }))
+          ]}
           value={selectedSource}
-          onChange={(e) => setSelectedSource(e.target.value)}
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#121418] border border-slate-200 dark:border-[#1F232B] text-slate-700 dark:text-[#EDEDED] text-xs font-medium focus:outline-none focus:border-[#2E8B75]"
-        >
-          <option value="all">All Sources</option>
-          {availableSources.map((src) => (
-            <option key={src} value={src}>
-              {formatSourceType(src)}
-            </option>
-          ))}
-        </select>
+          onChange={setSelectedSource}
+          className="min-w-32"
+        />
 
         {/* Intent Filter */}
-        <select
+        <CustomSelect
+          options={[
+            { value: 'all', label: 'All Intents' },
+            { value: 'bug_report', label: 'Bug Report' },
+            { value: 'feature_request', label: 'Feature Request' },
+            { value: 'complaint', label: 'Complaint' },
+            { value: 'praise', label: 'Praise' },
+            { value: 'question', label: 'Question' }
+          ]}
           value={selectedIntent}
-          onChange={(e) => setSelectedIntent(e.target.value)}
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#121418] border border-slate-200 dark:border-[#1F232B] text-slate-700 dark:text-[#EDEDED] text-xs font-medium focus:outline-none focus:border-[#2E8B75]"
-        >
-          <option value="all">All Intents</option>
-          <option value="bug_report">Bug Report</option>
-          <option value="feature_request">Feature Request</option>
-          <option value="complaint">Complaint</option>
-          <option value="praise">Praise</option>
-          <option value="question">Question</option>
-        </select>
+          onChange={setSelectedIntent}
+          className="min-w-32"
+        />
 
         {/* Severity Filter */}
-        <select
+        <CustomSelect
+          options={[
+            { value: 'all', label: 'All Severities' },
+            { value: 'critical', label: 'Critical' },
+            { value: 'high', label: 'High' },
+            { value: 'medium', label: 'Medium' },
+            { value: 'low', label: 'Low' }
+          ]}
           value={selectedSeverity}
-          onChange={(e) => setSelectedSeverity(e.target.value)}
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#121418] border border-slate-200 dark:border-[#1F232B] text-slate-700 dark:text-[#EDEDED] text-xs font-medium focus:outline-none focus:border-[#2E8B75]"
-        >
-          <option value="all">All Severities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
+          onChange={setSelectedSeverity}
+          className="min-w-32"
+        />
 
         {/* Segment Filter */}
-        <select
+        <CustomSelect
+          options={[
+            { value: 'all', label: 'All Segments' },
+            ...availableSegments.map((seg) => ({
+              value: seg,
+              label: seg
+            })),
+            { value: 'Unassigned', label: 'Unassigned' }
+          ]}
           value={selectedSegment}
-          onChange={(e) => setSelectedSegment(e.target.value)}
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#121418] border border-slate-200 dark:border-[#1F232B] text-slate-700 dark:text-[#EDEDED] text-xs font-medium focus:outline-none focus:border-[#2E8B75]"
-        >
-          <option value="all">All Segments</option>
-          {availableSegments.map((seg) => (
-            <option key={seg} value={seg}>
-              {seg}
-            </option>
-          ))}
-          <option value="Unassigned">Unassigned</option>
-        </select>
+          onChange={setSelectedSegment}
+          className="min-w-32"
+        />
 
         {/* Ingestion Status Filter */}
-        <select
+        <CustomSelect
+          options={[
+            { value: 'all', label: 'All Status' },
+            { value: 'valid', label: 'Valid' },
+            { value: 'processed', label: 'Processed' },
+            { value: 'pending', label: 'Pending' },
+            { value: 'duplicate', label: 'Duplicate' },
+            { value: 'invalid', label: 'Invalid' }
+          ]}
           value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#121418] border border-slate-200 dark:border-[#1F232B] text-slate-700 dark:text-[#EDEDED] text-xs font-medium focus:outline-none focus:border-[#2E8B75]"
-        >
-          <option value="all">All Status</option>
-          <option value="valid">Valid</option>
-          <option value="processed">Processed</option>
-          <option value="pending">Pending</option>
-          <option value="duplicate">Duplicate</option>
-          <option value="invalid">Invalid</option>
-        </select>
+          onChange={setSelectedStatus}
+          className="min-w-30"
+        />
+
 
         {/* Clear Filters Button */}
         {hasActiveSecondaryFilters && (
