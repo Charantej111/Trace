@@ -117,18 +117,18 @@ export function FeedbackPage() {
       </div>
 
       {/* Main Data Table */}
-      <div className="rounded-lg surface-card overflow-hidden">
+      <div className="rounded-xl surface-card overflow-hidden">
         {filteredFeedback.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400 space-y-2">
-            <MessageSquare className="w-6 h-6 mx-auto text-slate-400" />
-            <p className="font-semibold text-slate-700 dark:text-slate-300">No Feedback Records Match Filters</p>
+          <div className="p-8 text-center text-xs text-slate-400 dark:text-[#525866] space-y-2">
+            <MessageSquare className="w-6 h-6 mx-auto text-slate-400 dark:text-[#525866]" />
+            <p className="font-semibold text-slate-700 dark:text-[#EDEDED]">No Feedback Records Match Filters</p>
             <p className="text-[11px]">Try clearing search or adjusting active filters.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0F172A] text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase">
+                <tr className="border-b border-slate-200 dark:border-[#1F232B] bg-slate-50/50 dark:bg-[#15181E] text-[10px] font-mono text-slate-500 dark:text-[#64748B] uppercase">
                   <th className="py-2.5 px-3.5">CUSTOMER / ACCOUNT</th>
                   <th className="py-2.5 px-3.5">SOURCE</th>
                   <th className="py-2.5 px-3.5">VERBATIM CUSTOMER STATEMENT</th>
@@ -137,7 +137,7 @@ export function FeedbackPage() {
                   <th className="py-2.5 px-3.5 text-right">DATE</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#334155]">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#1F232B]">
                 {filteredFeedback.map(item => {
                   const primaryAtom = item.atoms?.[0];
                   const severity = primaryAtom?.severity || 'medium';
@@ -146,30 +146,30 @@ export function FeedbackPage() {
                     <tr
                       key={item.id}
                       onClick={() => setSelectedFeedback(item)}
-                      className="hover:bg-slate-50 dark:hover:bg-[#334155]/40 transition-colors cursor-pointer"
+                      className="hover:bg-slate-50 dark:hover:bg-[#181B22] transition-colors cursor-pointer"
                     >
-                      <td className="py-3 px-3.5 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                      <td className="py-3 px-3.5 font-semibold text-slate-900 dark:text-[#EDEDED] whitespace-nowrap">
                         {item.customerName || 'Anonymous Account'}
                       </td>
-                      <td className="py-3 px-3.5 font-mono text-[11px] uppercase text-slate-500 whitespace-nowrap">
+                      <td className="py-3 px-3.5 font-mono text-[11px] uppercase text-slate-500 dark:text-[#64748B] whitespace-nowrap">
                         {item.sourceType}
                       </td>
-                      <td className="py-3 px-3.5 font-normal text-slate-800 dark:text-slate-200 max-w-md truncate">
+                      <td className="py-3 px-3.5 font-normal text-slate-800 dark:text-[#C9CDD8] max-w-md truncate">
                         "{item.originalText}"
                       </td>
                       <td className="py-3 px-3.5 whitespace-nowrap">
                         <span className={`px-2 py-0.2 rounded text-[10px] font-mono font-bold uppercase ${
                           severity === 'critical' || severity === 'high'
-                            ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
-                            : 'bg-slate-100 dark:bg-[#0F172A] text-slate-700 dark:text-slate-300'
+                            ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400'
+                            : 'bg-slate-100 dark:bg-[#1C2029] text-slate-700 dark:text-[#8C92A4]'
                         }`}>
                           {severity}
                         </span>
                       </td>
-                      <td className="py-3 px-3.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                      <td className="py-3 px-3.5 text-slate-600 dark:text-[#8C92A4] whitespace-nowrap">
                         {item.customerSegmentName || 'SMB'}
                       </td>
-                      <td className="py-3 px-3.5 font-mono text-[10px] text-slate-400 text-right whitespace-nowrap">
+                      <td className="py-3 px-3.5 font-mono text-[10px] text-slate-400 dark:text-[#525866] text-right whitespace-nowrap">
                         {new Date(item.sourceCreatedAt || item.importedAt).toLocaleDateString()}
                       </td>
                     </tr>

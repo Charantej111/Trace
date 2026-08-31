@@ -93,25 +93,25 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-white dark:bg-[#0d0f15] rounded-2xl border border-slate-200 dark:border-[#1e2333] shadow-2xl overflow-hidden text-xs space-y-4 p-5 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-xl surface-glass rounded-3xl border border-slate-200/80 dark:border-[#334155] shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#171b26] pb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-[#1a2030] text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+        <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-[#334155] pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#3B9B85] flex items-center justify-center font-bold shadow-2xs">
               <MessageSquare className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Quick Capture — Paste Customer Statements
               </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                 Paste raw feedback comments, chat transcripts, or meeting notes directly into Trace.
               </p>
             </div>
           </div>
 
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <button onClick={onClose} className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -212,13 +212,13 @@ Please add bulk export capability for weekly reports.`}
             <button
               onClick={handleIngestPaste}
               disabled={isProcessing || parsedStatements.length === 0}
-              className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
+              className="px-4 py-1.5 rounded-xl bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-bold flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-50"
             >
               {isProcessing ? (
                 <span>Ingesting Statements...</span>
               ) : (
                 <>
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <MessageSquare className="w-3.5 h-3.5" />
                   <span>Ingest {parsedStatements.length} Statement{parsedStatements.length > 1 ? 's' : ''}</span>
                 </>
               )}

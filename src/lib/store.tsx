@@ -75,23 +75,23 @@ interface TraceStoreContextType {
 
 const TraceStoreContext = createContext<TraceStoreContextType | null>(null);
 
-const STORAGE_KEY = 'trace_platform_clean_v4';
+const STORAGE_KEY = 'trace_platform_clean_v5';
 
 export function TraceStoreProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [workspace] = useState<Workspace>(INITIAL_WORKSPACE);
   const [productContext, setProductContext] = useState<ProductContext>(INITIAL_PRODUCT_CONTEXT);
   const [customerSegments] = useState<CustomerSegment[]>(INITIAL_CUSTOMER_SEGMENTS);
-  const [sources, setSources] = useState<FeedbackSource[]>(INITIAL_SOURCES);
+  const [sources, setSources] = useState<FeedbackSource[]>([]);
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
-  const [feedbackList, setFeedbackList] = useState<Feedback[]>(INITIAL_FEEDBACK);
-  const [themes, setThemes] = useState<Theme[]>(INITIAL_THEMES);
-  const [painPoints, setPainPoints] = useState<PainPoint[]>(INITIAL_PAIN_POINTS);
-  const [insights, setInsights] = useState<Insight[]>(INITIAL_INSIGHTS);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(INITIAL_OPPORTUNITIES);
-  const [decisions, setDecisions] = useState<ProductDecision[]>(INITIAL_DECISIONS);
-  const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>(INITIAL_ROADMAP);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
+  const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
+  const [themes, setThemes] = useState<Theme[]>([]);
+  const [painPoints, setPainPoints] = useState<PainPoint[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [decisions, setDecisions] = useState<ProductDecision[]>([]);
+  const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -110,6 +110,17 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         if (parsed.sources) setSources(parsed.sources);
         if (parsed.importJobs) setImportJobs(parsed.importJobs);
         if (parsed.isDemoMode !== undefined) setIsDemoMode(parsed.isDemoMode);
+      } else {
+        // Clean workspace by default (no mock data)
+        setFeedbackList([]);
+        setSources([]);
+        setPainPoints([]);
+        setInsights([]);
+        setOpportunities([]);
+        setDecisions([]);
+        setRoadmapItems([]);
+        setImportJobs([]);
+        setIsDemoMode(false);
       }
     } catch (e) {
       console.error('Error loading stored state:', e);

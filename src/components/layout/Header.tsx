@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import {
-  Search,
-  Sun,
-  Moon,
-  RotateCcw,
-  Bell,
-  Upload,
-  Sparkles
-} from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Sun, Moon, RotateCcw } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useTraceStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
-  const { workspace, resetToDemoData, isDemoMode } = useTraceStore();
+  const { resetToDemoData } = useTraceStore();
   const { addToast } = useToast();
   const location = useLocation();
   const [mounted, setMounted] = useState(false);
@@ -35,11 +27,7 @@ export function Header() {
     }
   };
 
-  const handleOpenSearch = () => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
-  };
-
-  const getBreadcrumbTitle = () => {
+  const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Overview';
     if (path.startsWith('/inbox')) return 'Inbox';
@@ -54,50 +42,20 @@ export function Header() {
   };
 
   return (
-    <header className="h-11 border-b border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 px-5 flex items-center justify-between sticky top-0 z-30 text-xs select-none">
-      {/* Left Breadcrumb & Status */}
-      <div className="flex items-center gap-2.5 text-xs">
-        <span className="font-medium text-slate-500 dark:text-slate-400 font-mono">
-          {workspace.name}
-        </span>
-        {isDemoMode ? (
-          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
-            DEMO DATA
-          </span>
-        ) : (
-          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
-            LIVE DATA
-          </span>
-        )}
-        <span className="text-slate-300 dark:text-slate-700">/</span>
-        <span className="font-semibold text-slate-900 dark:text-slate-100">
-          {getBreadcrumbTitle()}
+    <header className="h-11 border-b border-slate-200 dark:border-[#1A1D24] bg-white dark:bg-[#0C0D10] text-slate-900 dark:text-[#EDEDED] px-6 flex items-center justify-between sticky top-0 z-30 text-xs select-none">
+      {/* Left Page Title */}
+      <div className="flex items-center">
+        <span className="font-bold text-slate-900 dark:text-[#EDEDED] text-xs tracking-tight">
+          {getPageTitle()}
         </span>
       </div>
 
-      {/* Center Search Bar Trigger */}
-      <div className="flex-1 max-w-sm mx-4">
-        <button
-          onClick={handleOpenSearch}
-          className="w-full flex items-center justify-between px-2.5 py-1 rounded-md border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#1E293B] hover:bg-slate-100 dark:hover:bg-[#334155]/60 text-slate-500 dark:text-slate-400 transition-colors text-xs"
-        >
-          <div className="flex items-center gap-2 truncate">
-            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">Search feedback, problems, or opportunities...</span>
-          </div>
-
-          <kbd className="px-1.5 py-0.2 rounded bg-white dark:bg-[#0F172A] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-[#334155] font-mono text-[10px] font-semibold shrink-0">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
-
-      {/* Right User Actions & Primary Action */}
-      <div className="flex items-center gap-2">
+      {/* Right Quick Controls */}
+      <div className="flex items-center gap-1.5">
         <button
           onClick={handleReset}
           title="Reset Demo Data"
-          className="p-1.5 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition-colors"
+          className="p-1.5 rounded-md text-slate-400 dark:text-[#8C92A4] hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#181B22] transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" />
         </button>
@@ -105,7 +63,7 @@ export function Header() {
         <button
           onClick={toggleTheme}
           title={mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle Theme'}
-          className="p-1.5 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition-colors"
+          className="p-1.5 rounded-md text-slate-400 dark:text-[#8C92A4] hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#181B22] transition-colors"
         >
           {mounted && theme === 'dark' ? (
             <Sun className="w-3.5 h-3.5 text-amber-400" />
@@ -113,14 +71,6 @@ export function Header() {
             <Moon className="w-3.5 h-3.5 text-slate-600" />
           )}
         </button>
-
-        <Link
-          to="/sources"
-          className="px-3 py-1 rounded-md bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-2xs"
-        >
-          <Upload className="w-3.5 h-3.5" />
-          <span>Import feedback</span>
-        </Link>
       </div>
     </header>
   );

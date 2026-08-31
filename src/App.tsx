@@ -10,7 +10,7 @@ import { OpportunitiesPage } from '@/pages/OpportunitiesPage';
 import { DecisionsPage } from '@/pages/DecisionsPage';
 import { RoadmapPage } from '@/pages/RoadmapPage';
 import { SourcesPage } from '@/pages/SourcesPage';
-import { ContextSettingsPage } from '@/pages/ContextSettingsPage';
+import { StrategicContextPage } from '@/pages/StrategicContextPage';
 
 export function App() {
   return (
@@ -25,7 +25,7 @@ export function App() {
         <Route path="/decisions" element={<DecisionsPage />} />
         <Route path="/roadmap" element={<RoadmapPage />} />
         <Route path="/sources" element={<SourcesPage />} />
-        <Route path="/settings/context" element={<ContextSettingsPage />} />
+        <Route path="/settings/context" element={<StrategicContextPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

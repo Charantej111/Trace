@@ -4,7 +4,7 @@ import { Header } from './Header';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#090A0C] text-slate-900 dark:text-[#EDEDED]">
       {/* Sidebar Navigation */}
       <Sidebar />
 
@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Header />
 
         {/* Dynamic Page Container */}
-        <main className="flex-1 overflow-y-auto p-5 md:p-6 lg:p-8 bg-slate-50 dark:bg-slate-950">
+        <main className="flex-1 overflow-y-auto p-5 md:p-6 lg:p-7 bg-slate-50 dark:bg-[#090A0C]">
           <div className="max-w-7xl mx-auto space-y-6">
             {children}
           </div>
