@@ -3,41 +3,13 @@ import { SourceType } from '@/types/trace';
 export interface ConnectorInfo {
   id: SourceType;
   name: string;
-  category: 'file' | 'app_store' | 'support' | 'custom';
-  status: 'active' | 'coming_soon';
+  category: 'app_store' | 'support' | 'custom';
+  status: 'coming_soon';
   description: string;
   badge?: string;
 }
 
 export const CONNECTOR_CATALOG: ConnectorInfo[] = [
-  {
-    id: 'csv',
-    name: 'CSV Spreadsheet',
-    category: 'file',
-    status: 'active',
-    description: 'Import feedback, support exports, or survey logs from standard CSV files.'
-  },
-  {
-    id: 'xlsx',
-    name: 'Excel Spreadsheet',
-    category: 'file',
-    status: 'active',
-    description: 'Directly parse multi-column XLSX spreadsheets.'
-  },
-  {
-    id: 'json',
-    name: 'JSON Document',
-    category: 'file',
-    status: 'active',
-    description: 'Ingest raw JSON feedback arrays with automatic nested collection detection.'
-  },
-  {
-    id: 'paste',
-    name: 'Quick Paste & Text',
-    category: 'custom',
-    status: 'active',
-    description: 'Instant capture for unstructured notes, call transcripts, or chat snippets.'
-  },
   {
     id: 'google_play',
     name: 'Google Play Store',
@@ -56,7 +28,7 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
   },
   {
     id: 'zendesk',
-    name: 'Zendesk Support',
+    name: 'Zendesk',
     category: 'support',
     status: 'coming_soon',
     description: 'Ticket comment stream and customer resolution conversations.',
@@ -64,10 +36,19 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
   },
   {
     id: 'intercom',
-    name: 'Intercom Conversations',
+    name: 'Intercom',
     category: 'support',
     status: 'coming_soon',
     description: 'Live chat feedback and CSAT score synchronizer.',
     badge: 'Coming Soon'
+  },
+  {
+    id: 'api',
+    name: 'REST API',
+    category: 'custom',
+    status: 'coming_soon',
+    description: 'Programmatically submit canonical customer feedback records via secure webhook or endpoint.',
+    badge: 'Coming Soon'
   }
 ];
+

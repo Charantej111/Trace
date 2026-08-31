@@ -31,7 +31,7 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
   },
   {
     id: 'zendesk',
-    name: 'Zendesk Support',
+    name: 'Zendesk',
     category: 'Helpdesk',
     description: 'Import customer support ticket descriptions, customer segments, and satisfaction ratings.',
     status: 'coming_soon',
@@ -40,7 +40,7 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
   },
   {
     id: 'intercom',
-    name: 'Intercom Conversations',
+    name: 'Intercom',
     category: 'Helpdesk',
     description: 'Sync live customer chat transcripts, tagged feedback, and user segment attributes.',
     status: 'coming_soon',
@@ -49,7 +49,7 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
   },
   {
     id: 'api',
-    name: 'Trace REST API v1',
+    name: 'REST API',
     category: 'Custom',
     description: 'Programmatically submit canonical customer feedback records from your backend or webhook pipeline.',
     status: 'coming_soon',
@@ -57,3 +57,4 @@ export const CONNECTOR_CATALOG: ConnectorInfo[] = [
     capabilities: ['Real-time Webhook', 'Custom Metadata', 'External ID Mapping']
   }
 ];
+

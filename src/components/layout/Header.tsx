@@ -36,7 +36,7 @@ export function Header() {
     if (path.startsWith('/opportunities')) return 'Opportunities Matrix';
     if (path.startsWith('/decisions')) return 'Decision Memory';
     if (path.startsWith('/roadmap')) return 'Roadmap';
-    if (path.startsWith('/sources')) return 'Data Sources';
+    if (path.startsWith('/sources')) return 'Feedback Sources';
     if (path.startsWith('/settings/context')) return 'Product Context';
     return 'Workspace';
   };

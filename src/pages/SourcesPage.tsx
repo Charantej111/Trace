@@ -24,6 +24,50 @@ import { PasteFeedbackModal } from '@/components/ingestion/PasteFeedbackModal';
 import { ImportDetailsModal } from '@/components/ingestion/ImportDetailsModal';
 import { ImportJob } from '@/types/trace';
 
+interface IngestionMethod {
+  id: string;
+  name: string;
+  description: string;
+  actionText: string;
+  icon: React.ComponentType<{ className?: string }>;
+  modal: 'wizard_csv' | 'wizard_xlsx' | 'wizard_json' | 'paste';
+}
+
+const AVAILABLE_INGESTION_METHODS: IngestionMethod[] = [
+  {
+    id: 'csv',
+    name: 'CSV File (.csv)',
+    description: 'Import exported customer feedback rows from any spreadsheet or database.',
+    actionText: 'Upload CSV',
+    icon: FileSpreadsheet,
+    modal: 'wizard_csv'
+  },
+  {
+    id: 'xlsx',
+    name: 'Excel (.xlsx)',
+    description: 'Multi-sheet Excel workbook parser with sheet picker and header detection.',
+    actionText: 'Upload Excel',
+    icon: FileSpreadsheet,
+    modal: 'wizard_xlsx'
+  },
+  {
+    id: 'json',
+    name: 'JSON Data (.json)',
+    description: 'Structured JSON arrays or wrapped objects with collection picker.',
+    actionText: 'Upload JSON',
+    icon: FileCode,
+    modal: 'wizard_json'
+  },
+  {
+    id: 'paste',
+    name: 'Quick Capture (Paste)',
+    description: 'Paste raw customer statements, chat quotes, or call transcripts.',
+    actionText: 'Paste Quotes',
+    icon: MessageSquare,
+    modal: 'paste'
+  }
+];
+
 export function SourcesPage() {
   const {
     sources,
@@ -46,6 +90,8 @@ export function SourcesPage() {
       case 'zendesk':
       case 'intercom':
         return MessageSquare;
+      case 'api':
+        return Zap;
       case 'json':
         return FileCode;
       case 'paste':
@@ -96,126 +142,45 @@ export function SourcesPage() {
             IMPORT FEEDBACK (AVAILABLE NOW)
           </h2>
           <span className="text-[11px] text-emerald-600 dark:text-[#10B981] font-mono font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> 4 Ingestion Methods Active
+            <CheckCircle2 className="w-3.5 h-3.5" /> {AVAILABLE_INGESTION_METHODS.length} Ingestion Methods Active
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: CSV */}
-          <div
-            onClick={() => setActiveModal('wizard_csv')}
-            className="p-4 rounded-xl surface-card surface-card-hover cursor-pointer space-y-3 group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center group-hover:scale-105 transition-transform">
-                <FileSpreadsheet className="w-4 h-4" />
+          {AVAILABLE_INGESTION_METHODS.map((method) => {
+            const Icon = method.icon;
+
+            return (
+              <div
+                key={method.id}
+                onClick={() => setActiveModal(method.modal)}
+                className="p-4 rounded-xl surface-card surface-card-hover cursor-pointer space-y-3 group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-[#10B981] border border-emerald-200/80 dark:border-emerald-900/60">
+                    ACTIVE
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs group-hover:text-[#2E8B75] dark:group-hover:text-[#10B981] transition-colors">
+                    {method.name}
+                  </h3>
+                  <p className="text-slate-500 dark:text-[#8C92A4] text-[11px] mt-1 leading-relaxed">
+                    {method.description}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex items-center justify-between text-[11px] font-semibold text-[#2E8B75] dark:text-[#10B981]">
+                  <span>{method.actionText}</span>
+                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </div>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-[#10B981] border border-emerald-200/80 dark:border-emerald-900/60">
-                ACTIVE
-              </span>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs group-hover:text-[#2E8B75] dark:group-hover:text-[#10B981] transition-colors">
-                CSV File (.csv)
-              </h3>
-              <p className="text-slate-500 dark:text-[#8C92A4] text-[11px] mt-1 leading-relaxed">
-                Import exported customer feedback rows from any spreadsheet or database.
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex items-center justify-between text-[11px] font-semibold text-[#2E8B75] dark:text-[#10B981]">
-              <span>Upload CSV</span>
-              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </div>
-
-          {/* Card 2: XLSX */}
-          <div
-            onClick={() => setActiveModal('wizard_xlsx')}
-            className="p-4 rounded-xl surface-card surface-card-hover cursor-pointer space-y-3 group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center group-hover:scale-105 transition-transform">
-                <FileSpreadsheet className="w-4 h-4" />
-              </div>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-[#10B981] border border-emerald-200/80 dark:border-emerald-900/60">
-                ACTIVE
-              </span>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs group-hover:text-[#2E8B75] dark:group-hover:text-[#10B981] transition-colors">
-                Excel (.xlsx)
-              </h3>
-              <p className="text-slate-500 dark:text-[#8C92A4] text-[11px] mt-1 leading-relaxed">
-                Multi-sheet Excel workbook parser with sheet picker and header detection.
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex items-center justify-between text-[11px] font-semibold text-[#2E8B75] dark:text-[#10B981]">
-              <span>Upload Excel</span>
-              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </div>
-
-          {/* Card 3: JSON */}
-          <div
-            onClick={() => setActiveModal('wizard_json')}
-            className="p-4 rounded-xl surface-card surface-card-hover cursor-pointer space-y-3 group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center group-hover:scale-105 transition-transform">
-                <FileCode className="w-4 h-4" />
-              </div>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-[#10B981] border border-emerald-200/80 dark:border-emerald-900/60">
-                ACTIVE
-              </span>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs group-hover:text-[#2E8B75] dark:group-hover:text-[#10B981] transition-colors">
-                JSON Data (.json)
-              </h3>
-              <p className="text-slate-500 dark:text-[#8C92A4] text-[11px] mt-1 leading-relaxed">
-                Structured JSON arrays or wrapped objects with collection picker.
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex items-center justify-between text-[11px] font-semibold text-[#2E8B75] dark:text-[#10B981]">
-              <span>Upload JSON</span>
-              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </div>
-
-          {/* Card 4: Paste Feedback */}
-          <div
-            onClick={() => setActiveModal('paste')}
-            className="p-4 rounded-xl surface-card surface-card-hover cursor-pointer space-y-3 group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center group-hover:scale-105 transition-transform">
-                <MessageSquare className="w-4 h-4" />
-              </div>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-[#10B981] border border-emerald-200/80 dark:border-emerald-900/60">
-                ACTIVE
-              </span>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs group-hover:text-[#2E8B75] dark:group-hover:text-[#10B981] transition-colors">
-                Quick Capture (Paste)
-              </h3>
-              <p className="text-slate-500 dark:text-[#8C92A4] text-[11px] mt-1 leading-relaxed">
-                Paste raw customer statements, chat quotes, or call transcripts.
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex items-center justify-between text-[11px] font-semibold text-[#2E8B75] dark:text-[#10B981]">
-              <span>Paste Quotes</span>
-              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
@@ -223,14 +188,14 @@ export function SourcesPage() {
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">
-            AUTOMATED INTEGRATIONS (ROADMAP)
+            CONNECTED SOURCES · COMING SOON
           </h2>
           <span className="text-[11px] text-slate-400 dark:text-[#525866] font-mono">
-            Direct API Connectors
+            {CONNECTOR_CATALOG.length} Sources on Roadmap
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {CONNECTOR_CATALOG.map((connector) => {
             const Icon = getSourceIcon(connector.id);
 
@@ -261,6 +226,7 @@ export function SourcesPage() {
           })}
         </div>
       </div>
+
 
       {/* Section 3: Import History & Audit Trail */}
       <div className="space-y-3 pt-2">
