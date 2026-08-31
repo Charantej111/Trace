@@ -203,9 +203,9 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl surface-glass rounded-2xl border border-slate-200 dark:border-white/[0.08] shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-2xl surface-glass rounded-2xl border border-slate-200 dark:border-white/8 shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/[0.08] pb-3.5">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/8 pb-3.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
               <FileSpreadsheet className="w-4 h-4" />
@@ -234,7 +234,7 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
                 className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                   selectedFormat === 'csv'
                     ? 'bg-[#2E8B75]/10 border-[#2E8B75] text-[#2E8B75] dark:text-[#10B981]'
-                    : 'border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-[#8C92A4]'
+                    : 'border-slate-200 dark:border-white/8 text-slate-600 dark:text-[#8C92A4]'
                 }`}
               >
                 CSV File (.csv)
@@ -244,7 +244,7 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
                 className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                   selectedFormat === 'xlsx'
                     ? 'bg-[#2E8B75]/10 border-[#2E8B75] text-[#2E8B75] dark:text-[#10B981]'
-                    : 'border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-[#8C92A4]'
+                    : 'border-slate-200 dark:border-white/8 text-slate-600 dark:text-[#8C92A4]'
                 }`}
               >
                 Excel Spreadsheet (.xlsx)
@@ -254,14 +254,14 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
                 className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                   selectedFormat === 'json'
                     ? 'bg-[#2E8B75]/10 border-[#2E8B75] text-[#2E8B75] dark:text-[#10B981]'
-                    : 'border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-[#8C92A4]'
+                    : 'border-slate-200 dark:border-white/8 text-slate-600 dark:text-[#8C92A4]'
                 }`}
               >
                 JSON Records (.json)
               </button>
             </div>
 
-            <div className="border-2 border-dashed border-slate-200 dark:border-white/[0.08] rounded-xl p-8 text-center space-y-3">
+            <div className="border-2 border-dashed border-slate-200 dark:border-white/8 rounded-xl p-8 text-center space-y-3">
               <Upload className="w-8 h-8 text-[#2E8B75] dark:text-[#10B981] mx-auto" />
               <div>
                 <label className="cursor-pointer px-4 py-2 rounded-lg bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-semibold text-xs inline-block shadow-2xs transition-colors">
@@ -374,7 +374,7 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
               })}
             </div>
 
-            <div className="flex justify-between pt-3 border-t border-slate-100 dark:border-white/[0.08]">
+            <div className="flex justify-between pt-3 border-t border-slate-100 dark:border-white/8">
               <button
                 onClick={() => setStep(1)}
                 className="px-3.5 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1A1E26] text-slate-700 dark:text-[#EDEDED] font-semibold"
@@ -458,7 +458,7 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
               </div>
             )}
 
-            <div className="flex justify-between pt-3 border-t border-slate-100 dark:border-white/[0.08]">
+            <div className="flex justify-between pt-3 border-t border-slate-100 dark:border-white/8">
               <button
                 onClick={() => setStep(2)}
                 className="px-3.5 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1A1E26] text-slate-700 dark:text-[#EDEDED] font-semibold"

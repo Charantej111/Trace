@@ -42,7 +42,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="pointer-events-auto p-3.5 rounded-xl surface-glass border border-slate-200 dark:border-white/[0.08] shadow-xl flex items-start gap-2.5 text-xs text-slate-800 dark:text-[#EDEDED] animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="pointer-events-auto p-3.5 rounded-xl surface-glass border border-slate-200 dark:border-white/8 shadow-xl flex items-start gap-2.5 text-xs text-slate-800 dark:text-[#EDEDED] animate-in fade-in slide-in-from-bottom-2 duration-200"
           >
             {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-[#2E8B75] dark:text-[#10B981] shrink-0 mt-0.5" />}
             {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />}

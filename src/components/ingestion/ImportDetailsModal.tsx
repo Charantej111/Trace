@@ -25,9 +25,9 @@ export function ImportDetailsModal({ importJob, onClose }: ImportDetailsModalPro
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg surface-glass rounded-2xl border border-slate-200 dark:border-white/[0.08] shadow-2xl overflow-hidden text-xs space-y-4 p-5 animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-lg surface-glass rounded-2xl border border-slate-200 dark:border-white/8 shadow-2xl overflow-hidden text-xs space-y-4 p-5 animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/[0.08] pb-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/8 pb-3">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-[#2E8B75] dark:text-[#10B981]" />
             <div>
@@ -62,19 +62,19 @@ export function ImportDetailsModal({ importJob, onClose }: ImportDetailsModalPro
             </div>
 
             <div className="grid grid-cols-4 gap-2 pt-1 font-mono text-center">
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/[0.06]">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/6">
                 <span className="text-[10px] text-slate-400 dark:text-[#64748B] block">Total</span>
                 <span className="font-bold text-slate-900 dark:text-[#EDEDED]">{importJob.totalRows}</span>
               </div>
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/[0.06]">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/6">
                 <span className="text-[10px] text-emerald-600 dark:text-[#10B981] block">Valid</span>
                 <span className="font-bold text-emerald-600 dark:text-[#10B981]">{importJob.acceptedRows}</span>
               </div>
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/[0.06]">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/6">
                 <span className="text-[10px] text-rose-500 block">Invalid</span>
                 <span className="font-bold text-rose-500">{importJob.rejectedRows}</span>
               </div>
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/[0.06]">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200/80 dark:border-white/6">
                 <span className="text-[10px] text-amber-500 block">Duplicates</span>
                 <span className="font-bold text-amber-500">{importJob.duplicateRows}</span>
               </div>
@@ -99,10 +99,10 @@ export function ImportDetailsModal({ importJob, onClose }: ImportDetailsModalPro
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/[0.08]">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/8">
           <button
             onClick={handleReprocess}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#1A1E26] font-semibold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/8 text-slate-700 dark:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#1A1E26] font-semibold flex items-center gap-1.5 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Reprocess Ingestion</span>

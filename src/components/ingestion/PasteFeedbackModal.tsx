@@ -102,9 +102,9 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl surface-glass rounded-2xl border border-slate-200 dark:border-white/[0.08] shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-xl surface-glass rounded-2xl border border-slate-200 dark:border-white/8 shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/[0.08] pb-3.5">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/8 pb-3.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
               <MessageSquare className="w-4 h-4" />
@@ -162,7 +162,7 @@ Please add bulk export capability for weekly reports.`}
               type="text"
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
-              className="w-full p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200 dark:border-white/[0.08] text-xs font-semibold text-slate-900 dark:text-[#EDEDED] focus:outline-none"
+              className="w-full p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200 dark:border-white/8 text-xs font-semibold text-slate-900 dark:text-[#EDEDED] focus:outline-none"
             />
           </div>
 
@@ -205,7 +205,7 @@ Please add bulk export capability for weekly reports.`}
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/[0.08]">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/8">
           <span className="text-[10px] text-slate-400 dark:text-[#525866] font-mono">
             Customer identity defaults to "Unknown" (never fabricated)
           </span>

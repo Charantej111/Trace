@@ -42,7 +42,7 @@ export function Header() {
   };
 
   return (
-    <header className="h-12 border-b border-slate-200/90 dark:border-white/[0.08] bg-white/80 dark:bg-[#0E1013]/90 backdrop-blur-xl text-slate-900 dark:text-[#EDEDED] px-6 flex items-center justify-between sticky top-0 z-30 text-xs select-none shadow-2xs">
+    <header className="h-12 border-b border-slate-200/90 dark:border-white/8 bg-white/80 dark:bg-[#0E1013]/90 backdrop-blur-xl text-slate-900 dark:text-[#EDEDED] px-6 flex items-center justify-between sticky top-0 z-30 text-xs select-none shadow-2xs">
       {/* Left Page Title */}
       <div className="flex items-center">
         <span className="font-bold text-slate-900 dark:text-[#EDEDED] text-xs tracking-tight">

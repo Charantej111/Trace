@@ -60,7 +60,7 @@ export function TelemetryChart() {
 
   return (
     <div className="p-4 rounded-xl surface-card space-y-3">
-      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.08] pb-2.5">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/8 pb-2.5">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center">
             <Activity className="w-3.5 h-3.5" />
@@ -77,7 +77,7 @@ export function TelemetryChart() {
       </div>
 
       {!hasData ? (
-        <div className="h-44 flex flex-col items-center justify-center text-center p-4 space-y-2 border border-dashed border-slate-200 dark:border-white/[0.08] rounded-lg text-xs text-slate-400 dark:text-[#64748B]">
+        <div className="h-44 flex flex-col items-center justify-center text-center p-4 space-y-2 border border-dashed border-slate-200 dark:border-white/8 rounded-lg text-xs text-slate-400 dark:text-[#64748B]">
           <Activity className="w-5 h-5 text-slate-400 dark:text-[#64748B]" />
           <p className="font-semibold text-slate-700 dark:text-[#EDEDED]">No Telemetry Recorded</p>
           <p className="text-[11px] max-w-xs">Ingest customer feedback to automatically generate feedback velocity and volume curves.</p>
@@ -94,7 +94,7 @@ export function TelemetryChart() {
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                className="stroke-slate-200/80 dark:stroke-white/[0.06]"
+                className="stroke-slate-200/80 dark:stroke-white/6"
                 vertical={false}
               />
               <XAxis
