@@ -12,6 +12,7 @@ import {
   FileText,
   AlertCircle
 } from 'lucide-react';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import {
   AdapterParseResult,
   CanonicalFieldKey,
@@ -354,18 +355,18 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
 
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">{spec.desc}</p>
 
-                    <select
+                    <CustomSelect
+                      options={[
+                        { value: '', label: '-- Unmapped --' },
+                        ...activeHeaders.map(col => ({
+                          value: col,
+                          label: `${col} ${activeRows[0] ? `(e.g. "${String(activeRows[0].data[col] || '').slice(0, 25)}")` : ''}`
+                        }))
+                      ]}
                       value={mappings[fieldKey] || ''}
-                      onChange={(e) => setMappings(prev => ({ ...prev, [fieldKey]: e.target.value || null }))}
-                      className="w-full p-2 rounded-lg bg-white dark:bg-[#161a26] border border-slate-200 dark:border-[#262f44] text-xs font-semibold focus:outline-none"
-                    >
-                      <option value="">-- Unmapped --</option>
-                      {activeHeaders.map(col => (
-                        <option key={col} value={col}>
-                          {col} {activeRows[0] ? `(e.g. "${String(activeRows[0].data[col] || '').slice(0, 25)}")` : ''}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setMappings(prev => ({ ...prev, [fieldKey]: val || null }))}
+                      className="w-full"
+                    />
                   </div>
                 );
               })}

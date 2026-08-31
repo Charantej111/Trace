@@ -105,17 +105,17 @@ export function ImportDetailsModal({ importJob, onClose }: ImportDetailsModalPro
         </div>
 
         {/* Action Footer */}
-        <div className="flex justify-between pt-3 border-t border-slate-100 dark:border-[#171b26]">
+        <div className="flex justify-between pt-3 border-t border-slate-100 dark:border-[#334155]">
           <button
             onClick={handleReprocess}
-            className="px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-300 font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-md bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#3B9B85] font-semibold flex items-center gap-1.5 transition-colors hover:bg-[#2E8B75]/20"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Reprocess Intelligence</span>
+            <span>Reprocess Analysis</span>
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-[#161a26] text-slate-700 dark:text-slate-300 font-semibold"
+            className="px-4 py-1.5 rounded-md bg-slate-100 dark:bg-[#334155] text-slate-700 dark:text-slate-200 font-medium"
           >
             Close
           </button>

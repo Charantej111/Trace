@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { MessageSquare, X, Sparkles, Plus, AlertCircle } from 'lucide-react';
+import { MessageSquare, X, Plus, AlertCircle } from 'lucide-react';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import { NormalizationEngine, PasteAdapter } from '@/ingestion';
 import { useTraceStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
@@ -161,35 +162,37 @@ Please add bulk export capability for weekly reports.`}
             <label className="text-[10px] font-bold text-slate-500 font-mono block mb-1">
               CUSTOMER SEGMENT
             </label>
-            <select
+            <CustomSelect
+              options={[
+                { value: 'Enterprise', label: 'Enterprise' },
+                { value: 'Mid-Market', label: 'Mid-Market' },
+                { value: 'SMB', label: 'SMB' },
+                { value: 'Startup', label: 'Startup' },
+                { value: 'Free Tier', label: 'Free Tier' }
+              ]}
               value={segment}
-              onChange={(e) => setSegment(e.target.value)}
-              className="w-full p-2 rounded-lg bg-slate-50 dark:bg-[#090b10] border border-slate-200 dark:border-[#1e2333] text-xs font-semibold focus:outline-none"
-            >
-              <option value="Enterprise">Enterprise</option>
-              <option value="Mid-Market">Mid-Market</option>
-              <option value="SMB">SMB</option>
-              <option value="Startup">Startup</option>
-              <option value="Free Tier">Free Tier</option>
-            </select>
+              onChange={setSegment}
+              className="w-full"
+            />
           </div>
 
           <div>
             <label className="text-[10px] font-bold text-slate-500 font-mono block mb-1">
               RATING (OPTIONAL)
             </label>
-            <select
-              value={rating}
-              onChange={(e) => setRating(e.target.value ? Number(e.target.value) : '')}
-              className="w-full p-2 rounded-lg bg-slate-50 dark:bg-[#090b10] border border-slate-200 dark:border-[#1e2333] text-xs font-semibold focus:outline-none"
-            >
-              <option value="">Unspecified</option>
-              <option value="1">1 Star / Poor</option>
-              <option value="2">2 Stars</option>
-              <option value="3">3 Stars / Neutral</option>
-              <option value="4">4 Stars</option>
-              <option value="5">5 Stars / Excellent</option>
-            </select>
+            <CustomSelect
+              options={[
+                { value: '', label: 'Unspecified' },
+                { value: '1', label: '1 Star / Poor' },
+                { value: '2', label: '2 Stars' },
+                { value: '3', label: '3 Stars / Neutral' },
+                { value: '4', label: '4 Stars' },
+                { value: '5', label: '5 Stars / Excellent' }
+              ]}
+              value={String(rating)}
+              onChange={(val) => setRating(val ? Number(val) : '')}
+              className="w-full"
+            />
           </div>
         </div>
 
