@@ -26,7 +26,7 @@ import {
   ValidationResult,
   Validator,
   XlsxAdapter
-} from '@/ingestion';
+} from '@/evidence';
 import { SourceType as FeedbackSourceType } from '@/types/trace';
 import { useTraceStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
@@ -149,21 +149,29 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
     setStep(3);
   };
 
-  const handleConfirmImport = () => {
+  const handleConfirmImport = async () => {
     if (!parseResult || !validation) return;
 
     setIsImporting(true);
 
-    setTimeout(() => {
-      const { records, validCount, invalidCount, duplicateCount, importId } = NormalizationEngine.normalizeBatch(
+    try {
+      const importId = `imp-${Date.now()}`;
+      const sourceId = `src-${Date.now()}`;
+
+      const { records, validCount, invalidCount, duplicateCount } = NormalizationEngine.normalizeBatch(
         activeRows,
         mappings,
-        selectedFormat,
-        parseResult.sourceMetadata.fileName,
-        parseResult.collections?.[selectedCollectionIndex]?.name
+        {
+          workspaceId: 'ws-default',
+          sourceId,
+          importId,
+          sourceType: selectedFormat,
+          fileName: parseResult.sourceMetadata.fileName,
+          sheetName: parseResult.collections?.[selectedCollectionIndex]?.name
+        }
       );
 
-      ingestCanonicalBatch(records, {
+      await ingestCanonicalBatch(records, {
         name: parseResult.sourceMetadata.name,
         type: selectedFormat,
         fileName: parseResult.sourceMetadata.fileName,
@@ -179,10 +187,18 @@ export function IngestionWizardModal({ initialFormat = 'csv', onClose }: Ingesti
 
       addToast({
         type: 'success',
-        title: 'Feedback Imported',
-        description: `Successfully ingested ${validCount} canonical records from ${parseResult.sourceMetadata.name}.`
+        title: 'Feedback Ingested',
+        description: `Successfully processed ${validCount} canonical records into durable Trace intelligence.`
       });
-    }, 500);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setIsImporting(false);
+      addToast({
+        type: 'error',
+        title: 'Ingestion Error',
+        description: error.message || 'Failed to process feedback batch'
+      });
+    }
   };
 
   return (

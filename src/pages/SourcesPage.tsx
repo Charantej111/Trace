@@ -18,7 +18,7 @@ import {
   Info
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
-import { CONNECTOR_CATALOG } from '@/ingestion';
+import { CONNECTOR_CATALOG } from '@/evidence';
 import { IngestionWizardModal } from '@/components/ingestion/IngestionWizardModal';
 import { PasteFeedbackModal } from '@/components/ingestion/PasteFeedbackModal';
 import { ImportDetailsModal } from '@/components/ingestion/ImportDetailsModal';

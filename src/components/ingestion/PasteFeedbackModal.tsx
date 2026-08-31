@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, X, Plus, AlertCircle } from 'lucide-react';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { NormalizationEngine, PasteAdapter } from '@/ingestion';
+import { NormalizationEngine, PasteAdapter } from '@/evidence';
 import { useTraceStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
 
@@ -25,7 +25,7 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
     .map(s => s.replace(/^[•\-*]\s*|^\d+[\.\)]\s*/, '').trim())
     .filter(s => s.length >= 3);
 
-  const handleIngestPaste = () => {
+  const handleIngestPaste = async () => {
     if (parsedStatements.length === 0) {
       addToast({
         type: 'error',
@@ -37,7 +37,7 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
 
     setIsProcessing(true);
 
-    setTimeout(() => {
+    try {
       const parseResult = PasteAdapter.parseInput({
         text: rawInput,
         sourceName: channelName,
@@ -47,13 +47,13 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
 
       const sourceId = `src-paste-${Date.now()}`;
       const importId = `imp-paste-${Date.now()}`;
-      const workspaceId = 'ws-prod';
+      const workspaceId = 'ws-default';
 
       const mappings = {
-        text: 'Feedback Text',
-        createdAt: 'Created At',
-        segment: segment ? 'Segment' : null,
-        rating: rating !== '' ? 'Rating' : null,
+        text: 'text',
+        createdAt: 'createdAt',
+        segment: segment ? 'segment' : null,
+        rating: rating !== '' ? 'rating' : null,
         customerName: null,
         customerEmail: null,
         externalId: null,
@@ -72,7 +72,7 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
         }
       );
 
-      ingestCanonicalBatch(records, {
+      await ingestCanonicalBatch(records, {
         name: channelName,
         type: 'paste',
         importId,
@@ -87,9 +87,17 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
       addToast({
         type: 'success',
         title: 'Pasted Feedback Ingested',
-        description: `Successfully created ${validCount} canonical feedback records from pasted input.`
+        description: `Successfully created ${validCount} canonical feedback records into durable Trace intelligence.`
       });
-    }, 400);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setIsProcessing(false);
+      addToast({
+        type: 'error',
+        title: 'Ingestion Error',
+        description: error.message || 'Failed to process pasted feedback'
+      });
+    }
   };
 
   return (

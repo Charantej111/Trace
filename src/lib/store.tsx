@@ -1,11 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   Workspace,
   ProductContext,
   CustomerSegment,
   FeedbackSource,
   Feedback,
-  FeedbackAtom,
   Theme,
   PainPoint,
   Insight,
@@ -16,22 +15,23 @@ import {
   RoadmapStatus,
   OpportunityStatus,
   ImportJob,
-  SourceType
+  SourceType,
+  CanonicalFeedback,
+  ProcessingJob,
+  ProcessingJobStage
 } from '@/types/trace';
-import { CanonicalFeedback, IntelligencePipeline } from '@/ingestion';
 import {
   INITIAL_WORKSPACE,
   INITIAL_PRODUCT_CONTEXT,
   INITIAL_CUSTOMER_SEGMENTS,
-  INITIAL_SOURCES,
-  INITIAL_FEEDBACK,
-  INITIAL_THEMES,
-  INITIAL_PAIN_POINTS,
-  INITIAL_INSIGHTS,
-  INITIAL_OPPORTUNITIES,
-  INITIAL_DECISIONS,
-  INITIAL_ROADMAP
+  RAW_SAMPLE_DATASET
 } from './mock-data';
+import { FeedbackRepo } from '@/repositories/feedback-repo';
+import { IntelligenceRepo } from '@/repositories/intelligence-repo';
+import { DecisionsRepo } from '@/repositories/decisions-repo';
+import { ProcessingJobRepo } from '@/repositories/processing-job-repo';
+import { ProcessingOrchestrator } from '@/processing/orchestrator';
+import { NormalizationEngine } from '@/evidence/normalization/engine';
 
 interface TraceStoreContextType {
   workspace: Workspace;
@@ -48,7 +48,12 @@ interface TraceStoreContextType {
   decisions: ProductDecision[];
   roadmapItems: RoadmapItem[];
   isDemoMode: boolean;
-  
+
+  // Processing state & live progress
+  activeJob: ProcessingJob | null;
+  activeStage: ProcessingJobStage | null;
+  isProcessing: boolean;
+
   // Actions
   ingestCanonicalBatch: (
     records: CanonicalFeedback[],
@@ -62,26 +67,24 @@ interface TraceStoreContextType {
       invalidCount?: number;
       duplicateCount?: number;
     }
-  ) => void;
-  reprocessImport: (importId: string) => void;
-  addFeedbackBatch: (newRecords: Partial<Feedback>[], sourceName?: string) => void;
-  recordDecision: (opportunityId: string, decision: DecisionType, rationale: string, alternativeTitle?: string) => void;
-  updateOpportunityStatus: (opportunityId: string, status: OpportunityStatus) => void;
-  updateRoadmapItemStatus: (roadmapId: string, newStatus: RoadmapStatus) => void;
-  addOpportunity: (opportunity: Omit<Opportunity, 'id' | 'createdAt' | 'overallPriorityScore'>) => void;
-  resetToDemoData: () => void;
-  clearWorkspaceData: () => void;
+  ) => Promise<void>;
+  recordDecision: (opportunityId: string, decision: DecisionType, rationale: string, alternativeTitle?: string) => Promise<void>;
+  updateOpportunityStatus: (opportunityId: string, status: OpportunityStatus) => Promise<void>;
+  updateRoadmapItemStatus: (roadmapId: string, newStatus: RoadmapStatus) => Promise<void>;
+  resetToDemoData: () => Promise<void>;
+  clearWorkspaceData: () => Promise<void>;
 }
 
 const TraceStoreContext = createContext<TraceStoreContextType | null>(null);
 
-const STORAGE_KEY = 'trace_platform_clean_v5';
+const STORAGE_KEY = 'trace_platform_clean_v6';
 
 export function TraceStoreProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [workspace] = useState<Workspace>(INITIAL_WORKSPACE);
   const [productContext, setProductContext] = useState<ProductContext>(INITIAL_PRODUCT_CONTEXT);
   const [customerSegments] = useState<CustomerSegment[]>(INITIAL_CUSTOMER_SEGMENTS);
+
   const [sources, setSources] = useState<FeedbackSource[]>([]);
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
@@ -93,42 +96,82 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
   const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 
-  // Load from LocalStorage
+  // Active Processing Job State
+  const [activeJob, setActiveJob] = useState<ProcessingJob | null>(null);
+  const [activeStage, setActiveStage] = useState<ProcessingJobStage | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  const refreshFromRepositories = useCallback(async () => {
+    const wsId = workspace.id;
+    const [fb, th, pp, ins, opps, decs, rd, srcs] = await Promise.all([
+      FeedbackRepo.getFeedbackByWorkspace(wsId),
+      IntelligenceRepo.getThemesByWorkspace(wsId),
+      PainPointRepo_getAll(wsId),
+      IntelligenceRepo.getInsightsByWorkspace(wsId),
+      DecisionsRepo.getOpportunitiesByWorkspace(wsId),
+      DecisionsRepo.getDecisionsByWorkspace(wsId),
+      DecisionsRepo.getRoadmapByWorkspace(wsId),
+      FeedbackRepo.getSourcesByWorkspace(wsId)
+    ]);
+
+    setFeedbackList(fb);
+    setThemes(th);
+    setPainPoints(pp);
+    setInsights(ins);
+    setOpportunities(opps);
+    setDecisions(decs);
+    setRoadmapItems(rd);
+    setSources(srcs);
+  }, [workspace.id]);
+
+  // Helper for pain points
+  async function PainPointRepo_getAll(wsId: string) {
+    return IntelligenceRepo.getPainPointsByWorkspace(wsId);
+  }
+
+  // Subscribe to progress events from Orchestrator
+  useEffect(() => {
+    const unsubscribe = ProcessingOrchestrator.onProgress((job, stage) => {
+      setActiveJob(job);
+      setActiveStage(stage || null);
+      setIsProcessing(job.status === 'processing');
+      if (job.status === 'completed' || job.status === 'partially_failed') {
+        refreshFromRepositories();
+      }
+    });
+    return unsubscribe;
+  }, [refreshFromRepositories]);
+
+  // Hydration from LocalStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.productContext) setProductContext(parsed.productContext);
-        if (parsed.feedbackList) setFeedbackList(parsed.feedbackList);
-        if (parsed.themes) setThemes(parsed.themes);
-        if (parsed.painPoints) setPainPoints(parsed.painPoints);
-        if (parsed.insights) setInsights(parsed.insights);
-        if (parsed.opportunities) setOpportunities(parsed.opportunities);
-        if (parsed.decisions) setDecisions(parsed.decisions);
-        if (parsed.roadmapItems) setRoadmapItems(parsed.roadmapItems);
-        if (parsed.sources) setSources(parsed.sources);
-        if (parsed.importJobs) setImportJobs(parsed.importJobs);
         if (parsed.isDemoMode !== undefined) setIsDemoMode(parsed.isDemoMode);
-      } else {
-        // Clean workspace by default (no mock data)
-        setFeedbackList([]);
-        setSources([]);
-        setPainPoints([]);
-        setInsights([]);
-        setOpportunities([]);
-        setDecisions([]);
-        setRoadmapItems([]);
-        setImportJobs([]);
-        setIsDemoMode(false);
+        if (parsed.importJobs) setImportJobs(parsed.importJobs);
+
+        if (parsed.feedbackList) {
+          FeedbackRepo.saveCanonicalFeedback(parsed.feedbackList);
+          if (parsed.atoms) FeedbackRepo.saveAtoms(parsed.atoms);
+          if (parsed.themes) IntelligenceRepo.saveThemes(parsed.themes);
+          if (parsed.painPoints) IntelligenceRepo.savePainPoints(parsed.painPoints);
+          if (parsed.insights) IntelligenceRepo.saveInsights(parsed.insights);
+          if (parsed.opportunities) DecisionsRepo.saveOpportunities(parsed.opportunities);
+          if (parsed.decisions) parsed.decisions.forEach((d: ProductDecision) => DecisionsRepo.saveDecision(d));
+          if (parsed.roadmapItems) parsed.roadmapItems.forEach((r: RoadmapItem) => DecisionsRepo.saveRoadmapItem(r));
+          if (parsed.sources) parsed.sources.forEach((s: FeedbackSource) => FeedbackRepo.saveSource(s));
+          refreshFromRepositories();
+        }
       }
     } catch (e) {
       console.error('Error loading stored state:', e);
     }
     setIsHydrated(true);
-  }, []);
+  }, [refreshFromRepositories]);
 
-  // Save to LocalStorage
+  // Persist State Cache
   useEffect(() => {
     if (!isHydrated) return;
     try {
@@ -172,7 +215,13 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     }));
   };
 
-  const ingestCanonicalBatch = (
+  /**
+   * Ingestion Action:
+   * 1. Persists raw canonical evidence to FeedbackRepo (Layer A)
+   * 2. Registers Source & ImportJob
+   * 3. Creates and runs ProcessingJob through ProcessingOrchestrator
+   */
+  const ingestCanonicalBatch = async (
     records: CanonicalFeedback[],
     sourceMeta: {
       name: string;
@@ -186,183 +235,57 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     }
   ) => {
     const timestamp = new Date().toISOString();
-
-    // Import Intelligence Pipeline
-    const newFeedback = IntelligencePipeline.process(records);
-    const atomsCount = newFeedback.reduce((acc, f) => acc + (f.atoms?.length || 0), 0);
-
-    setFeedbackList(prev => [...newFeedback, ...prev]);
-    setIsDemoMode(false); // Ingesting user data exits pure demo mode
-
-    // Register or Update Source
     const sourceId = records[0]?.sourceId || `src-${Date.now()}`;
-    setSources(prev => {
-      const existingIdx = prev.findIndex(s => s.id === sourceId || s.name === sourceMeta.name);
-      if (existingIdx >= 0) {
-        const updated = [...prev];
-        updated[existingIdx] = {
-          ...updated[existingIdx],
-          lastSyncedAt: timestamp,
-          recordCount: updated[existingIdx].recordCount + newFeedback.length
-        };
-        return updated;
-      }
-      return [
-        {
-          id: sourceId,
-          workspaceId: workspace.id,
-          type: sourceMeta.type,
-          name: sourceMeta.name,
-          status: 'active',
-          lastSyncedAt: timestamp,
-          recordCount: newFeedback.length
-        },
-        ...prev
-      ];
-    });
+    const importId = sourceMeta.importId || `imp-${Date.now()}`;
 
-    // Register Import Job Log
+    // 1. Persist Evidence First (Layer A)
+    await FeedbackRepo.saveCanonicalFeedback(records);
+
+    // 2. Register/Update Source
+    const newSource: FeedbackSource = {
+      id: sourceId,
+      workspaceId: workspace.id,
+      type: sourceMeta.type,
+      name: sourceMeta.name,
+      status: 'active',
+      lastSyncedAt: timestamp,
+      recordCount: records.length
+    };
+    await FeedbackRepo.saveSource(newSource);
+
+    // 3. Register Import Job Log
     const newImportJob: ImportJob = {
-      id: sourceMeta.importId || `imp-${Date.now()}`,
+      id: importId,
       workspaceId: workspace.id,
       sourceId,
       status: (sourceMeta.invalidCount || 0) > 0 ? 'completed_with_warnings' : 'completed',
       fileName: sourceMeta.fileName || sourceMeta.name,
       fileType: sourceMeta.type,
       totalRows: records.length,
-      acceptedRows: sourceMeta.validCount || newFeedback.length,
+      acceptedRows: sourceMeta.validCount || records.length,
       rejectedRows: sourceMeta.invalidCount || 0,
       duplicateRows: sourceMeta.duplicateCount || 0,
-      atomsExtracted: atomsCount,
+      atomsExtracted: 0,
       startedAt: timestamp,
       completedAt: timestamp,
       createdAt: timestamp
     };
-
     setImportJobs(prev => [newImportJob, ...prev]);
-  };
+    setIsDemoMode(false);
 
-  const reprocessImport = (importId: string) => {
-    const targetFeedback = feedbackList.filter(f => f.importId === importId);
-    if (targetFeedback.length === 0) return;
-
-    // Convert back to canonical and re-run Intelligence Pipeline
-    const canonicals: CanonicalFeedback[] = targetFeedback.map(f => ({
-      id: f.id,
-      workspaceId: f.workspaceId,
-      sourceId: f.sourceId || 'src-reprocess',
-      importId: f.importId || importId,
-      sourceType: f.sourceType,
-      originalText: f.originalText,
-      analysisText: f.analysisText || f.originalText,
-      externalId: f.externalId,
-      sourceTimestamp: f.sourceCreatedAt,
-      ingestionTimestamp: f.importedAt,
-      rating: f.rating,
-      language: f.language,
-      segment: f.customerSegmentName,
-      sourceLocation: f.sourceLocation,
-      normalizedMetadata: f.normalizedMetadata || {},
-      rawPayload: f.rawPayload || {},
-      fingerprint: f.fingerprint,
-      status: f.status || 'valid'
-    }));
-
-    const reprocessed = IntelligencePipeline.process(canonicals);
-
-    setFeedbackList(prev =>
-      prev.map(f => {
-        const found = reprocessed.find(r => r.id === f.id);
-        return found || f;
-      })
-    );
-  };
-
-  const addFeedbackBatch = (newRecords: Partial<Feedback>[], sourceName = 'Custom Upload') => {
-    const timestamp = new Date().toISOString();
-    const createdFeedback: Feedback[] = newRecords.map((rec, index) => {
-      const fbId = `fb-gen-${Date.now()}-${index}`;
-      const text = rec.originalText || '';
-      
-      // Automatic Atomization for demo import
-      const clauses = text.split(/(?<=[.!?])\s+|,\s+and\s+|,\s+but\s+/).filter(c => c.trim().length > 5);
-      const atoms: FeedbackAtom[] = clauses.length > 0 ? clauses.map((clause, cIdx) => {
-        const start = text.indexOf(clause);
-        const end = start >= 0 ? start + clause.length : clause.length;
-        const isRequest = /add|support|want|please|need|feature|request/i.test(clause);
-        const isBug = /crash|freeze|error|bug|broken|failed|timeout|slow/i.test(clause);
-        
-        return {
-          id: `atom-${fbId}-${cIdx}`,
-          workspaceId: workspace.id,
-          feedbackId: fbId,
-          atomText: clause.trim(),
-          sourceStart: Math.max(0, start),
-          sourceEnd: Math.max(0, end),
-          intent: isBug ? 'bug_report' : isRequest ? 'feature_request' : 'complaint',
-          sentiment: isBug ? 'negative' : isRequest ? 'neutral' : 'negative',
-          sentimentScore: isBug ? -0.85 : isRequest ? 0 : -0.5,
-          severity: isBug ? 'high' : 'medium',
-          isFeatureRequest: isRequest,
-          underlyingProblemHint: isRequest ? `Customer friction in: "${clause.trim().slice(0, 40)}..."` : undefined,
-          confidence: 'high',
-          themeName: isBug ? 'Stability & Error Recovery' : 'Product Usability',
-          createdAt: timestamp
-        };
-      }) : [
-        {
-          id: `atom-${fbId}-0`,
-          workspaceId: workspace.id,
-          feedbackId: fbId,
-          atomText: text,
-          sourceStart: 0,
-          sourceEnd: text.length,
-          intent: 'complaint',
-          sentiment: 'negative',
-          sentimentScore: -0.6,
-          severity: 'medium',
-          isFeatureRequest: false,
-          confidence: 'medium',
-          createdAt: timestamp
-        }
-      ];
-
-      return {
-        id: fbId,
-        workspaceId: workspace.id,
-        sourceType: rec.sourceType || 'csv',
-        originalText: text,
-        sourceCreatedAt: rec.sourceCreatedAt || timestamp,
-        importedAt: timestamp,
-        customerName: rec.customerName || 'Anonymous Customer',
-        customerSegmentName: rec.customerSegmentName || 'SMB',
-        customerSegmentId: rec.customerSegmentId || 'seg-smb',
-        rating: rec.rating || 3,
-        appVersion: rec.appVersion || 'v4.13.0',
-        deviceInfo: rec.deviceInfo || 'Web App',
-        fingerprint: `fp-${Date.now()}-${index}`,
-        atoms
-      };
+    // 4. Create and execute durable processing job through Orchestrator
+    const job = await ProcessingOrchestrator.createJob({
+      workspaceId: workspace.id,
+      importId,
+      totalRecords: records.length,
+      type: 'import'
     });
 
-    setFeedbackList(prev => [...createdFeedback, ...prev]);
-
-    // Register Source
-    setSources(prev => [
-      {
-        id: `src-custom-${Date.now()}`,
-        workspaceId: workspace.id,
-        type: 'csv',
-        name: sourceName,
-        status: 'active',
-        lastSyncedAt: timestamp,
-        recordCount: newRecords.length
-      },
-      ...prev
-    ]);
+    await ProcessingOrchestrator.executeJob(job.id, productContext, customerSegments);
+    await refreshFromRepositories();
   };
 
-  const recordDecision = (
+  const recordDecision = async (
     opportunityId: string,
     decision: DecisionType,
     rationale: string,
@@ -377,14 +300,14 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
       workspaceId: workspace.id,
       opportunityId: opp.id,
       opportunityTitle: opp.title,
-      title: `${decision === 'accepted' ? 'Accepted & Committed' : 'Deferred/Rejected'}: ${opp.title}`,
+      title: `${decision === 'accepted' ? 'Accepted & Committed' : 'Deferred'}: ${opp.title}`,
       decision,
       rationale,
       evidenceSnapshot: {
         mentionCount: opp.evidenceCount,
-        severity: opp.scoreSeverity > 80 ? 'critical' : opp.scoreSeverity > 50 ? 'high' : 'medium',
+        severity: opp.scoreSeverity > 75 ? 'critical' : opp.scoreSeverity > 50 ? 'high' : 'medium',
         affectedSegments: opp.targetSegments,
-        sampleQuotes: ['Directly derived from customer evidence trace in Trace.'],
+        sampleQuotes: ['Preserved in decision audit snapshot.'],
         scoreAtDecisionTime: opp.overallPriorityScore
       },
       alternativePrioritizedTitle: alternativeTitle,
@@ -392,82 +315,104 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
       decidedAt: timestamp
     };
 
-    setDecisions(prev => [newDecision, ...prev]);
+    await DecisionsRepo.saveDecision(newDecision);
+    await DecisionsRepo.updateOpportunityStatus(opportunityId, decision === 'accepted' ? 'accepted' : 'rejected');
 
-    // Update opportunity status
-    setOpportunities(prev =>
-      prev.map(o => (o.id === opportunityId ? { ...o, status: decision === 'accepted' ? 'accepted' : 'rejected' } : o))
-    );
-
-    // If accepted, add to Roadmap Kanban
     if (decision === 'accepted') {
       const newRoadmapItem: RoadmapItem = {
         id: `rd-${Date.now()}`,
         workspaceId: workspace.id,
         opportunityId: opp.id,
+        decisionId: newDecision.id,
         title: opp.title,
         status: 'planned',
-        targetQuarter: 'Q3 2026',
-        owner: 'Engineering Team',
-        linkedDecisions: [newDecision.id],
-        impactMetrics: {
-          customerReach: opp.evidenceCount,
-          revenueValue: opp.overallPriorityScore * 1000
-        },
-        createdAt: timestamp
+        targetPeriod: 'Q3 2026',
+        priority: opp.overallPriorityScore >= 80 ? 'P0' : 'P1',
+        evidenceCount: opp.evidenceCount,
+        topQuotes: ['Directly derived from customer evidence trace in Trace.'],
+        createdAt: timestamp,
+        updatedAt: timestamp
       };
-
-      setRoadmapItems(prev => [newRoadmapItem, ...prev]);
+      await DecisionsRepo.saveRoadmapItem(newRoadmapItem);
     }
+
+    await refreshFromRepositories();
   };
 
-  const updateOpportunityStatus = (opportunityId: string, status: OpportunityStatus) => {
-    setOpportunities(prev =>
-      prev.map(o => (o.id === opportunityId ? { ...o, status } : o))
-    );
+  const updateOpportunityStatus = async (opportunityId: string, status: OpportunityStatus) => {
+    await DecisionsRepo.updateOpportunityStatus(opportunityId, status);
+    await refreshFromRepositories();
   };
 
-  const updateRoadmapItemStatus = (roadmapId: string, newStatus: RoadmapStatus) => {
-    setRoadmapItems(prev =>
-      prev.map(item => (item.id === roadmapId ? { ...item, status: newStatus } : item))
-    );
+  const updateRoadmapItemStatus = async (roadmapId: string, newStatus: RoadmapStatus) => {
+    await DecisionsRepo.updateRoadmapItemStatus(roadmapId, newStatus);
+    await refreshFromRepositories();
   };
 
-  const addOpportunity = (oppData: Omit<Opportunity, 'id' | 'createdAt' | 'overallPriorityScore'>) => {
-    const overallScore = Math.round(
-      oppData.scoreCustomerDemand * 0.4 +
-      oppData.scoreStrategicAlignment * 0.3 +
-      oppData.scoreSeverity * 0.3
-    );
+  /**
+   * Reset / Load Sample Data:
+   * Ingests RAW realistic customer feedback and executes the real processing engine
+   * so intelligence is generated dynamically from evidence (Zero mock intelligence).
+   */
+  const resetToDemoData = async () => {
+    await clearWorkspaceData();
+    setIsDemoMode(true);
 
-    const newOpp: Opportunity = {
-      ...oppData,
-      id: `opp-${Date.now()}`,
-      overallPriorityScore: overallScore,
-      createdAt: new Date().toISOString()
+    const now = Date.now();
+    const rows = RAW_SAMPLE_DATASET.map((item, idx) => ({
+      rowIndex: idx + 1,
+      data: {
+        text: item.text,
+        customerName: item.customerName,
+        segment: item.customerSegment,
+        rating: item.rating,
+        createdAt: new Date(now - item.dateOffsetDays * 24 * 60 * 60 * 1000).toISOString()
+      },
+      sourceLocation: {
+        fileName: 'demo-sample-feedback.csv',
+        rowIndex: idx + 1
+      }
+    }));
+
+    const mappings = {
+      text: 'text',
+      customerName: 'customerName',
+      customerEmail: null,
+      externalId: null,
+      createdAt: 'createdAt',
+      rating: 'rating',
+      segment: 'segment',
+      language: null,
+      productArea: null
     };
 
-    setOpportunities(prev => [newOpp, ...prev]);
+    const normalized = NormalizationEngine.normalizeBatch(rows, mappings, {
+      workspaceId: workspace.id,
+      sourceId: 'src-sample-demo',
+      importId: 'imp-sample-demo',
+      sourceType: 'csv',
+      fileName: 'demo-sample-feedback.csv'
+    });
+
+    await ingestCanonicalBatch(normalized.records, {
+      name: 'Sample Customer Dataset',
+      type: 'csv',
+      fileName: 'demo-sample-feedback.csv',
+      importId: 'imp-sample-demo',
+      validCount: normalized.validCount,
+      invalidCount: normalized.invalidCount,
+      duplicateCount: normalized.duplicateCount
+    });
   };
 
-  const resetToDemoData = () => {
-    setProductContext(INITIAL_PRODUCT_CONTEXT);
-    setSources(INITIAL_SOURCES);
-    setFeedbackList(INITIAL_FEEDBACK);
-    setThemes(INITIAL_THEMES);
-    setPainPoints(INITIAL_PAIN_POINTS);
-    setInsights(INITIAL_INSIGHTS);
-    setOpportunities(INITIAL_OPPORTUNITIES);
-    setDecisions(INITIAL_DECISIONS);
-    setRoadmapItems(INITIAL_ROADMAP);
-    setImportJobs([]);
-    setIsDemoMode(true);
-    localStorage.removeItem(STORAGE_KEY);
-  };
+  const clearWorkspaceData = async () => {
+    await Promise.all([
+      FeedbackRepo.clearWorkspace(workspace.id),
+      IntelligenceRepo.clearWorkspace(workspace.id),
+      DecisionsRepo.clearWorkspace(workspace.id),
+      ProcessingJobRepo.clearWorkspace(workspace.id)
+    ]);
 
-  const clearWorkspaceData = () => {
-    setProductContext(INITIAL_PRODUCT_CONTEXT);
-    setSources([]);
     setFeedbackList([]);
     setThemes([]);
     setPainPoints([]);
@@ -475,6 +420,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
     setOpportunities([]);
     setDecisions([]);
     setRoadmapItems([]);
+    setSources([]);
     setImportJobs([]);
     setIsDemoMode(false);
     localStorage.removeItem(STORAGE_KEY);
@@ -497,13 +443,13 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
         decisions,
         roadmapItems,
         isDemoMode,
+        activeJob,
+        activeStage,
+        isProcessing,
         ingestCanonicalBatch,
-        reprocessImport,
-        addFeedbackBatch,
         recordDecision,
         updateOpportunityStatus,
         updateRoadmapItemStatus,
-        addOpportunity,
         resetToDemoData,
         clearWorkspaceData
       }}

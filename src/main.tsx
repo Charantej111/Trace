@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/ui/toast';
 import { TraceStoreProvider } from '@/lib/store';
 import App from './App';
 import './index.css';
+import '@/tests/run';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

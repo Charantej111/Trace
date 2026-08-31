@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Inbox,
-  AlertCircle,
-  CheckCircle2,
-  Zap,
   Flame,
-  Filter,
   Search,
-  MessageSquare,
   Clock,
-  ArrowUpRight
+  ChevronRight
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
+import { Feedback } from '@/types/trace';
+import { FeedbackDetailDrawer } from '@/components/feedback/FeedbackDetailDrawer';
 
 export function InboxPage() {
-  const { feedbackList } = useTraceStore();
+  const { feedbackList, isProcessing, activeStage } = useTraceStore();
   const [filterTab, setFilterTab] = useState<'all' | 'critical' | 'unreviewed' | 'emerging'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
 
   const filteredItems = feedbackList.filter(item => {
     if (searchQuery.trim()) {
@@ -31,7 +28,7 @@ export function InboxPage() {
       return item.atoms?.some(a => a.severity === 'critical');
     }
     if (filterTab === 'emerging') {
-      return item.atoms?.some(a => a.atomText.toLowerCase().includes('android') || a.atomText.toLowerCase().includes('crash'));
+      return item.atoms?.some(a => a.atomText.toLowerCase().includes('crash') || a.atomText.toLowerCase().includes('latency'));
     }
     if (filterTab === 'unreviewed') {
       return item.rating && item.rating <= 2;
@@ -46,10 +43,10 @@ export function InboxPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-[#1F232B] pb-3.5">
         <div>
           <h1 className="text-lg font-bold text-slate-900 dark:text-[#EDEDED] flex items-center gap-2">
-            <span>Feedback Ingestion Queue & Triage</span>
+            <span>Feedback Ingestion Queue & Evidence Triage</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-[#8C92A4] mt-0.5 font-mono">
-            Real-time feed of arriving customer statements requiring PM verification and anomaly triage.
+            Immutable customer evidence feed with verified atom clause extractions and metadata.
           </p>
         </div>
 
@@ -99,6 +96,21 @@ export function InboxPage() {
         </div>
       </div>
 
+      {/* Live Processing Indicator */}
+      {isProcessing && (
+        <div className="p-3.5 rounded-xl surface-card border border-emerald-500/30 flex items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+              Processing batch... Executing stage: <span className="capitalize">{activeStage?.stage.replace(/_/g, ' ') || 'Processing'}</span>
+            </span>
+          </div>
+          <span className="text-[11px] font-mono text-slate-400 dark:text-[#8C92A4]">
+            {activeStage ? `${activeStage.processedItems}/${activeStage.totalItems} items` : 'Running'}
+          </span>
+        </div>
+      )}
+
       {/* Search Input Bar */}
       <div className="relative">
         <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -123,7 +135,8 @@ export function InboxPage() {
           filteredItems.map((item) => (
             <div
               key={item.id}
-              className="p-4 rounded-xl surface-card surface-card-hover space-y-2 text-xs"
+              onClick={() => setSelectedFeedback(item)}
+              className="p-4 rounded-xl surface-card surface-card-hover space-y-2 text-xs cursor-pointer"
             >
               {/* Top Row */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-[#1F232B] pb-2">
@@ -145,6 +158,7 @@ export function InboxPage() {
                 <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-[#525866] font-mono">
                   <Clock className="w-3 h-3" />
                   <span>{new Date(item.sourceCreatedAt || item.importedAt).toLocaleDateString()}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                 </div>
               </div>
 
@@ -157,7 +171,7 @@ export function InboxPage() {
               {item.atoms && item.atoms.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
                   <span className="text-[10px] font-semibold text-slate-400 dark:text-[#525866] uppercase font-mono tracking-wider mr-1">
-                    EXTRACTED CLAUSES:
+                    VERIFIED ATOMS:
                   </span>
                   {item.atoms.map((atom) => (
                     <span
@@ -179,6 +193,14 @@ export function InboxPage() {
           ))
         )}
       </div>
+
+      {/* Slide-out Feedback Detail Drawer */}
+      {selectedFeedback && (
+        <FeedbackDetailDrawer
+          feedback={selectedFeedback}
+          onClose={() => setSelectedFeedback(null)}
+        />
+      )}
     </div>
   );
 }

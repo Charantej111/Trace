@@ -258,6 +258,88 @@ create table if not exists roadmap_items (
   updated_at timestamptz not null default now()
 );
 
+-- 13. Processing Jobs Hierarchy (3-Level Durable Engine)
+create table if not exists processing_jobs (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  import_id uuid references imports(id) on delete cascade,
+  idempotency_key text not null,
+  type text not null default 'import' check (type in ('import', 'reprocess', 'incremental')),
+  status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'failed', 'partially_failed')),
+  total_records integer default 0,
+  processed_records integer default 0,
+  failed_records integer default 0,
+  error text,
+  pipeline_version text not null default '1.0.0',
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (workspace_id, idempotency_key)
+);
+
+create table if not exists processing_job_stages (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references processing_jobs(id) on delete cascade,
+  stage text not null check (stage in (
+    'normalization', 'atomization', 'classification', 'embedding',
+    'clustering', 'theme_generation', 'pain_point_generation',
+    'insight_generation', 'opportunity_generation'
+  )),
+  status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'failed', 'skipped')),
+  total_items integer default 0,
+  processed_items integer default 0,
+  failed_items integer default 0,
+  error text,
+  attempt integer default 1,
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (job_id, stage)
+);
+
+create table if not exists processing_job_items (
+  id uuid primary key default gen_random_uuid(),
+  stage_id uuid not null references processing_job_stages(id) on delete cascade,
+  job_id uuid not null references processing_jobs(id) on delete cascade,
+  entity_type text not null check (entity_type in ('feedback', 'atom', 'cluster', 'pain_point', 'insight')),
+  entity_id uuid not null,
+  status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'failed')),
+  attempt integer default 1,
+  error text,
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (stage_id, entity_type, entity_id)
+);
+
+-- 14. AI Run Tracking & Cost Guard
+create table if not exists ai_runs (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  job_id uuid references processing_jobs(id) on delete set null,
+  stage text not null,
+  operation text not null,
+  provider text not null default 'openai',
+  model text not null,
+  input_tokens integer default 0,
+  output_tokens integer default 0,
+  estimated_cost numeric default 0,
+  duration_ms integer default 0,
+  status text not null default 'success',
+  pipeline_version text not null default '1.0.0',
+  prompt_version text not null default 'v1',
+  error text,
+  created_at timestamptz not null default now()
+);
+
+-- Indexes for performance & vector search
+create index if not exists idx_feedback_workspace on feedback(workspace_id);
+create index if not exists idx_feedback_fingerprint on feedback(workspace_id, fingerprint);
+create index if not exists idx_atoms_feedback on feedback_atoms(feedback_id);
+create index if not exists idx_processing_jobs_workspace on processing_jobs(workspace_id);
+create index if not exists idx_processing_job_stages_job on processing_job_stages(job_id);
+create index if not exists idx_processing_job_items_stage on processing_job_items(stage_id);
+
 -- RLS Helper
 create or replace function is_workspace_member(ws_id uuid)
 returns boolean as $$
@@ -266,3 +348,4 @@ returns boolean as $$
     where workspace_id = ws_id and user_id = auth.uid()
   );
 $$ language sql security definer;
+

@@ -2,12 +2,29 @@ export type IntentType = 'bug_report' | 'complaint' | 'feature_request' | 'prais
 export type SentimentType = 'positive' | 'neutral' | 'negative';
 export type SeverityType = 'low' | 'medium' | 'high' | 'critical';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
+export type VerificationStatus = 'verified' | 'rejected';
 export type SourceType = 'csv' | 'xlsx' | 'json' | 'paste' | 'google_play' | 'app_store' | 'zendesk' | 'intercom' | 'sales_call' | 'survey' | 'api' | 'other';
 export type OpportunityStatus = 'suggested' | 'reviewing' | 'accepted' | 'rejected' | 'archived';
 export type DecisionType = 'accepted' | 'rejected_wont_do' | 'deferred' | 'workaround_exists';
 export type RoadmapStatus = 'idea' | 'candidate' | 'planned' | 'in_progress' | 'shipped' | 'archived';
 export type EvidenceType = 'supporting' | 'contradicting' | 'neutral';
 export type IngestionRecordStatus = 'pending' | 'valid' | 'invalid' | 'duplicate' | 'processed' | 'failed';
+
+export type ProcessingStageType =
+  | 'normalization'
+  | 'atomization'
+  | 'classification'
+  | 'embedding'
+  | 'clustering'
+  | 'theme_generation'
+  | 'pain_point_generation'
+  | 'insight_generation'
+  | 'opportunity_generation';
+
+export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'partially_failed';
+export type StageStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'skipped';
+export type ItemStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ProcessingEntityType = 'feedback' | 'atom' | 'cluster' | 'pain_point' | 'insight';
 
 export interface Workspace {
   id: string;
@@ -20,10 +37,11 @@ export interface Workspace {
 
 export interface ProductContext {
   workspaceId: string;
-  companyGoals: { id: string; goal: string; priority: 'high' | 'medium' | 'low' }[];
+  companyGoals: { id: string; goal: string; priority: 'high' | 'medium' | 'low'; keywords?: string[] }[];
   targetSegments: { segmentId: string; name: string; weight: number }[];
   strategicFocusAreas: string[];
   knownConstraints: string[];
+  productAreaTags?: string[];
   updatedAt: string;
 }
 
@@ -82,6 +100,44 @@ export interface ImportJob {
   createdAt: string;
 }
 
+export interface CanonicalCustomer {
+  externalId?: string;
+  name?: string;
+  email?: string;
+  segment?: string;
+}
+
+export interface CanonicalFeedback {
+  id: string;
+  workspaceId: string;
+  sourceId: string;
+  importId: string;
+  sourceType: SourceType;
+
+  // Immutable raw evidence vs PII-sanitized analysis text
+  originalText: string;
+  analysisText: string;
+
+  externalId?: string;
+  customer?: CanonicalCustomer;
+
+  sourceTimestamp?: string;
+  ingestionTimestamp: string;
+
+  sourceLocation?: SourceLocation;
+
+  rating?: number;
+  language?: string;
+  segment?: string;
+  productArea?: string;
+
+  normalizedMetadata: Record<string, unknown>;
+  rawPayload: Record<string, unknown>;
+
+  fingerprint: string;
+  status: IngestionRecordStatus;
+}
+
 export interface Feedback {
   id: string;
   workspaceId: string;
@@ -125,8 +181,15 @@ export interface FeedbackAtom {
   isFeatureRequest: boolean;
   underlyingProblemHint?: string;
   confidence: ConfidenceLevel;
+  verificationStatus: VerificationStatus;
   themeId?: string;
   themeName?: string;
+  embedding?: number[];
+  embeddingModel?: string;
+  embeddingVersion?: string;
+  pipelineVersion?: string;
+  model?: string;
+  promptVersion?: string;
   createdAt: string;
 }
 
@@ -140,7 +203,10 @@ export interface Theme {
   status: 'active' | 'archived';
   topKeywords: string[];
   sentimentBreakdown: { positive: number; neutral: number; negative: number };
+  atomIds: string[];
+  pipelineVersion?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface PainPoint {
@@ -150,6 +216,7 @@ export interface PainPoint {
   themeName?: string;
   title: string;
   description: string;
+  hypothesis?: string;
   severity: SeverityType;
   frequency: number;
   trendPercentage: number;
@@ -157,7 +224,10 @@ export interface PainPoint {
   velocityMultiplier: number;
   confidence: ConfidenceLevel;
   affectedSegments: { segment: string; count: number; percentage: number }[];
+  atomIds: string[];
+  pipelineVersion?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface InsightEvidence {
@@ -186,7 +256,10 @@ export interface Insight {
   evidence: InsightEvidence[];
   supportingEvidenceCount: number;
   contradictingEvidenceCount: number;
+  pipelineVersion?: string;
+  promptVersion?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Opportunity {
@@ -199,19 +272,26 @@ export interface Opportunity {
   suggestedSolution?: string;
   targetSegments: string[];
   
-  // Explainable Score breakdown (0 - 100)
+  // Deterministic 5-Factor Score breakdown (0 - 100)
   scoreFrequency: number;
   scoreSeverity: number;
   scoreTrend: number;
   scoreSegmentImpact: number;
   scoreStrategicRelevance: number;
-  scoreEvidenceQuality: number;
+  scoreEvidenceQuality?: number;
   overallPriorityScore: number;
+  
+  // Independent Evidence Confidence
+  evidenceConfidence: ConfidenceLevel;
   
   status: OpportunityStatus;
   confidence: ConfidenceLevel;
   evidenceCount: number;
+  supportingInsightIds: string[];
+  supportingAtomIds: string[];
+  pipelineVersion?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ProductDecision {
@@ -257,4 +337,70 @@ export interface RoadmapItem {
   
   createdAt: string;
   updatedAt: string;
+}
+
+// Durable 3-Level Processing Job Models
+export interface ProcessingJob {
+  id: string;
+  workspaceId: string;
+  importId?: string;
+  idempotencyKey: string;
+  type: 'import' | 'reprocess' | 'incremental';
+  status: JobStatus;
+  totalRecords: number;
+  processedRecords: number;
+  failedRecords: number;
+  error?: string;
+  pipelineVersion: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface ProcessingJobStage {
+  id: string;
+  jobId: string;
+  stage: ProcessingStageType;
+  status: StageStatus;
+  totalItems: number;
+  processedItems: number;
+  failedItems: number;
+  error?: string;
+  attempt: number;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface ProcessingJobItem {
+  id: string;
+  stageId: string;
+  jobId: string;
+  entityType: ProcessingEntityType;
+  entityId: string;
+  status: ItemStatus;
+  attempt: number;
+  error?: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface AIRun {
+  id: string;
+  workspaceId: string;
+  jobId?: string;
+  stage: string;
+  operation: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCost: number;
+  durationMs: number;
+  status: 'success' | 'failed' | 'rate_limited';
+  pipelineVersion: string;
+  promptVersion: string;
+  error?: string;
+  createdAt: string;
 }

@@ -1,25 +1,16 @@
 import React, { useState } from 'react';
 import { useTraceStore } from '@/lib/store';
-import { PainPoint } from '@/types/trace';
-import {
-  Flame,
-  Zap,
-  TrendingUp,
-  AlertTriangle,
-  Users,
-  Quote,
-  ChevronRight,
-  Layers
-} from 'lucide-react';
+import { Flame, Zap, AlertCircle } from 'lucide-react';
 
 export function InsightsPage() {
-  const { painPoints, feedbackList } = useTraceStore();
+  const { painPoints, feedbackList, isProcessing, activeStage } = useTraceStore();
   const [activeTab, setActiveTab] = useState<'top' | 'emerging'>('top');
 
   const emergingIssues = painPoints.filter(p => p.isEmerging);
   const topProblems = painPoints;
 
   const displayList = activeTab === 'emerging' ? emergingIssues : topProblems;
+  const totalFeedbackCount = feedbackList.length;
 
   return (
     <div className="space-y-5 text-slate-900 dark:text-[#EDEDED]">
@@ -30,10 +21,38 @@ export function InsightsPage() {
             Insights & Problem Clusters
           </h1>
           <p className="text-xs text-slate-500 dark:text-[#8C92A4] mt-0.5 font-mono">
-            Synthesized problem themes, mention frequency trends, and verbatim evidence clusters.
+            Synthesized problem themes, mention frequency trends, and verbatim evidence clusters derived from verified feedback.
           </p>
         </div>
       </div>
+
+      {/* Live Processing Indicator */}
+      {isProcessing && (
+        <div className="p-3.5 rounded-xl surface-card border border-emerald-500/30 flex items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+            <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+              Intelligence updating... Executing stage: <span className="capitalize">{activeStage?.stage.replace(/_/g, ' ') || 'Processing'}</span>
+            </span>
+          </div>
+          <span className="text-[11px] font-mono text-slate-400 dark:text-[#8C92A4]">
+            {activeStage ? `${activeStage.processedItems}/${activeStage.totalItems} items` : 'Running'}
+          </span>
+        </div>
+      )}
+
+      {/* Insufficient Evidence State */}
+      {!isProcessing && totalFeedbackCount > 0 && totalFeedbackCount < 3 && (
+        <div className="p-5 rounded-xl surface-card border border-amber-500/30 bg-amber-500/5 space-y-2 text-left">
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
+            <AlertCircle className="w-4 h-4" />
+            <span>INSUFFICIENT EVIDENCE FOR THEME EXTRACTION</span>
+          </div>
+          <p className="text-xs text-slate-600 dark:text-[#8C92A4] leading-relaxed">
+            At least <span className="font-semibold text-slate-900 dark:text-[#EDEDED]">3 verified customer statements across 2 distinct sources</span> are required before Trace synthesizes statistical problem clusters. Current count: <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{totalFeedbackCount}</span>.
+          </p>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#1F232B] pb-3 text-xs font-semibold">
@@ -71,9 +90,11 @@ export function InsightsPage() {
           </div>
         ) : (
           displayList.map((problem) => {
-            const matchingQuotes = feedbackList.filter(f =>
-              f.atoms?.some(a => a.themeName?.toLowerCase().includes(problem.title.toLowerCase().slice(0, 10)))
-            ).slice(0, 2);
+            const matchingFeedback = feedbackList.filter(f =>
+              f.atoms?.some(a => problem.atomIds?.includes(a.id))
+            );
+
+            const displayQuotes = matchingFeedback.length > 0 ? matchingFeedback.slice(0, 3) : feedbackList.slice(0, 2);
 
             return (
               <div key={problem.id} className="p-4 rounded-xl surface-card surface-card-hover space-y-3">
@@ -85,10 +106,13 @@ export function InsightsPage() {
                         {problem.title}
                       </h3>
                       {problem.isEmerging && (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400">
                           EMERGING SPIKE
                         </span>
                       )}
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-[#181B22] text-slate-600 dark:text-[#8C92A4]">
+                        Severity: {problem.severity.toUpperCase()}
+                      </span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-[#8C92A4] mt-0.5 leading-relaxed">
                       {problem.description}
@@ -100,46 +124,41 @@ export function InsightsPage() {
                       {problem.frequency} mentions
                     </span>
                     <p className="text-[10px] font-mono text-emerald-600 dark:text-[#10B981] font-semibold">
-                      +{problem.trendPercentage || 22}% velocity
+                      +{problem.trendPercentage}% velocity
                     </p>
                   </div>
                 </div>
 
-                {/* Segment Impact Breakdown */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-semibold text-slate-400 dark:text-[#525866] uppercase font-mono tracking-wider">
-                    SEGMENT DISTRIBUTION IMPACT
-                  </span>
-                  <div className="grid grid-cols-3 gap-2.5 text-xs font-mono">
-                    <div className="p-2.5 rounded-lg surface-subtle">
-                      <span className="text-slate-500 dark:text-[#8C92A4] block text-[10px]">Enterprise</span>
-                      <span className="font-bold text-slate-900 dark:text-[#EDEDED] text-sm">68%</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-lg surface-subtle">
-                      <span className="text-slate-500 dark:text-[#8C92A4] block text-[10px]">SMB</span>
-                      <span className="font-bold text-slate-900 dark:text-[#EDEDED] text-sm">24%</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-lg surface-subtle">
-                      <span className="text-slate-500 dark:text-[#8C92A4] block text-[10px]">Consumer</span>
-                      <span className="font-bold text-slate-900 dark:text-[#EDEDED] text-sm">8%</span>
+                {/* Dynamic Segment Impact Breakdown */}
+                {problem.affectedSegments && problem.affectedSegments.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-slate-400 dark:text-[#525866] uppercase font-mono tracking-wider">
+                      SEGMENT DISTRIBUTION IMPACT (DETERMINISTIC)
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
+                      {problem.affectedSegments.map((seg, sIdx) => (
+                        <div key={sIdx} className="p-2.5 rounded-lg surface-subtle">
+                          <span className="text-slate-500 dark:text-[#8C92A4] block text-[10px]">{seg.segment}</span>
+                          <span className="font-bold text-slate-900 dark:text-[#EDEDED] text-sm">{seg.percentage}%</span>
+                          <span className="text-[10px] text-slate-400 dark:text-[#525866] block">({seg.count} mentions)</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Verbatim Evidence Quotes */}
+                {/* Verbatim Customer Evidence */}
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[10px] font-semibold text-slate-400 dark:text-[#525866] uppercase font-mono tracking-wider">
-                    VERBATIM CUSTOMER EVIDENCE
+                    VERBATIM CUSTOMER EVIDENCE ({matchingFeedback.length} verified quotes)
                   </span>
 
                   <div className="space-y-2">
-                    {(matchingQuotes.length > 0 ? matchingQuotes : feedbackList.slice(0, 2)).map(q => (
+                    {displayQuotes.map(q => (
                       <div key={q.id} className="p-3 rounded-lg surface-subtle text-xs space-y-1">
                         <p className="font-medium text-slate-800 dark:text-[#C9CDD8] italic leading-relaxed">"{q.originalText}"</p>
                         <p className="text-[10px] font-mono text-slate-400 dark:text-[#525866] pt-0.5">
-                          — {q.customerName || 'Customer'} · {q.customerSegmentName || 'SMB'} · {q.sourceType.toUpperCase()}
+                          — {q.customerName || 'Anonymous Customer'} · {q.customerSegmentName || 'SMB'} · {q.sourceType.toUpperCase()}
                         </p>
                       </div>
                     ))}

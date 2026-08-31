@@ -1,6 +1,6 @@
 import React from 'react';
 import { Opportunity, RoadmapItem } from '@/types/trace';
-import { X, ArrowDown, ShieldCheck, Quote, Layers, Target, CheckCircle2, ChevronRight } from 'lucide-react';
+import { X, ShieldCheck, Quote } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 
 interface TraceabilityDrawerProps {
@@ -13,9 +13,15 @@ export function TraceabilityDrawer({ roadmapItem, opportunity, onClose }: Tracea
   const { opportunities, insights, painPoints, feedbackList } = useTraceStore();
 
   const opp = opportunity || opportunities.find(o => o.id === roadmapItem?.opportunityId) || opportunities[0];
-  const linkedInsight = insights.find(i => i.id === opp?.insightId) || insights[0];
+  const linkedInsight = insights.find(i => opp?.supportingInsightIds?.includes(i.id) || i.id === opp?.insightId) || insights[0];
   const linkedPainPoint = painPoints.find(p => p.id === linkedInsight?.painPointId) || painPoints[0];
-  const supportingQuotes = feedbackList.slice(0, 4);
+
+  // Dynamically resolve exact customer evidence quotes
+  const supportingQuotes = feedbackList.filter(f =>
+    f.atoms?.some(a => opp?.supportingAtomIds?.includes(a.id) || linkedInsight?.evidence?.some(e => e.atomId === a.id))
+  );
+
+  const displayQuotes = supportingQuotes.length > 0 ? supportingQuotes : feedbackList.slice(0, 3);
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex justify-end animate-in fade-in duration-200">
@@ -23,8 +29,9 @@ export function TraceabilityDrawer({ roadmapItem, opportunity, onClose }: Tracea
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1F232B] pb-4">
           <div>
-            <span className="text-[10px] font-mono font-bold text-[#2E8B75] dark:text-[#10B981] uppercase tracking-wider">
-              EVIDENCE LINEAGE TRACE
+            <span className="text-[10px] font-mono font-bold text-[#2E8B75] dark:text-[#10B981] uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>DEFENSIBLE EVIDENCE LINEAGE TRACE</span>
             </span>
             <h3 className="text-sm font-bold text-slate-900 dark:text-[#EDEDED] mt-1">
               Why are we building this initiative?
@@ -59,7 +66,7 @@ export function TraceabilityDrawer({ roadmapItem, opportunity, onClose }: Tracea
           {/* Node 2: Opportunity */}
           {opp && (
             <div className="relative pl-9 space-y-1.5">
-              <div className="absolute left-2 top-1.5 w-4 h-4 rounded-full bg-[#2E8B75] dark:text-[#090A0C] flex items-center justify-center text-white font-bold text-[9px] shadow-2xs">
+              <div className="absolute left-2 top-1.5 w-4 h-4 rounded-full bg-[#2E8B75] flex items-center justify-center text-white font-bold text-[9px] shadow-2xs">
                 2
               </div>
               <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">
@@ -110,15 +117,15 @@ export function TraceabilityDrawer({ roadmapItem, opportunity, onClose }: Tracea
               5
             </div>
             <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">
-              CUSTOMER EVIDENCE SAMPLES ({supportingQuotes.length})
+              VERBATIM CUSTOMER EVIDENCE SAMPLES ({displayQuotes.length})
             </span>
 
             <div className="space-y-2">
-              {supportingQuotes.map((q) => (
+              {displayQuotes.map((q) => (
                 <div key={q.id} className="p-3 rounded-lg surface-subtle text-xs space-y-1">
                   <p className="text-slate-800 dark:text-[#C9CDD8] italic">"{q.originalText}"</p>
                   <p className="text-[10px] font-mono text-slate-400 dark:text-[#525866]">
-                    — {q.customerName || 'Anonymous'} ({q.customerSegmentName || 'SMB'}) · {q.sourceType.toUpperCase()}
+                    — {q.customerName || 'Anonymous Account'} ({q.customerSegmentName || 'SMB'}) · {q.sourceType.toUpperCase()}
                   </p>
                 </div>
               ))}
