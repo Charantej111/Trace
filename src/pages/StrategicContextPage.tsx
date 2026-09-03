@@ -24,7 +24,6 @@ export function StrategicContextPage() {
     addCustomerSegment,
     updateCustomerSegment,
     deleteCustomerSegment,
-    resetToDemoData,
     clearWorkspaceData
   } = useTraceStore();
   const { addToast } = useToast();
@@ -36,9 +35,7 @@ export function StrategicContextPage() {
   const [newSegmentDesc, setNewSegmentDesc] = useState('');
   const [newSegmentWeight, setNewSegmentWeight] = useState<number>(1.2);
 
-  const [showResetModal, setShowResetModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
   const handleAddGoal = (e: React.FormEvent) => {
@@ -96,27 +93,6 @@ export function StrategicContextPage() {
     });
   };
 
-  const handleConfirmReset = async () => {
-    setIsResetting(true);
-    try {
-      await resetToDemoData();
-      addToast({
-        type: 'info',
-        title: 'Demo State Restored',
-        description: 'Workspace restored to clean baseline demonstration seed.'
-      });
-      setShowResetModal(false);
-    } catch (err) {
-      console.error('Reset failed:', err);
-      addToast({
-        type: 'error',
-        title: 'Reset Failed',
-        description: err instanceof Error ? err.message : 'Unable to reset workspace data.'
-      });
-    } finally {
-      setIsResetting(false);
-    }
-  };
 
   const handleConfirmClear = async () => {
     setIsClearing(true);
@@ -167,12 +143,12 @@ export function StrategicContextPage() {
           <div className="p-3 rounded-lg surface-subtle">
             <span className="text-slate-400 font-mono text-[10px] block">Role & Identity</span>
             <p className="font-bold text-slate-900 dark:text-[#EDEDED] mt-0.5">Product Lead</p>
-            <p className="text-[11px] text-slate-500 font-mono mt-0.5">lead@acme.inc</p>
+            <p className="text-[11px] text-slate-500 font-mono mt-0.5">pm@ofzen.in</p>
           </div>
 
           <div className="p-3 rounded-lg surface-subtle">
             <span className="text-slate-400 font-mono text-[10px] block">Organization</span>
-            <p className="font-bold text-slate-900 dark:text-[#EDEDED] mt-0.5">Acme Inc.</p>
+            <p className="font-bold text-slate-900 dark:text-[#EDEDED] mt-0.5">Ofzen LLP</p>
             <p className="text-[11px] text-slate-500 font-mono mt-0.5">Enterprise Tier</p>
           </div>
 
@@ -206,13 +182,12 @@ export function StrategicContextPage() {
                 <div key={g.id} className="p-3 rounded-lg surface-subtle text-xs flex items-center justify-between gap-2 group">
                   <span className="font-medium text-slate-800 dark:text-[#EDEDED] flex-1">{g.goal}</span>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                      g.priority === 'high'
-                        ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
-                        : g.priority === 'medium'
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${g.priority === 'high'
+                      ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
+                      : g.priority === 'medium'
                         ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60'
                         : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                    }`}>
+                      }`}>
                       {g.priority}
                     </span>
                     <button
@@ -386,88 +361,21 @@ export function StrategicContextPage() {
 
         <div className="pt-2 border-t border-rose-200/80 dark:border-rose-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="text-xs text-slate-600 dark:text-[#A0A6B5]">
-            <span className="font-semibold text-slate-900 dark:text-[#EDEDED] block">Reset to Demo Dataset</span>
-            <span className="text-[11px]">Re-seeds clean demonstration feedback with active pipeline derivation.</span>
+            <span className="font-semibold text-slate-900 dark:text-[#EDEDED] block">Clear All Workspace Data</span>
+            <span className="text-[11px]">Erase all customer feedback, extracted atoms, pain points, insights, and decisions for a clean slate.</span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowClearModal(true)}
-              className="px-3.5 py-2 rounded-xl border border-rose-300 dark:border-rose-900/70 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/30 font-semibold text-xs transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-2xs flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Clear Workspace</span>
             </button>
-
-            <button
-              onClick={() => setShowResetModal(true)}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-2xs flex items-center gap-1.5"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Demo State</span>
-            </button>
           </div>
         </div>
       </div>
-
-      {/* In-App Confirmation Modal: Reset Demo State */}
-      {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-[#14171E] border border-slate-200 dark:border-[#232833] rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-[#EDEDED]">
-                    Reset to Factory Demo State?
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-[#8C92A4] mt-0.5">
-                    Caution: Irreversible workspace state change
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => !isResetting && setShowResetModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-[#EDEDED] hover:bg-slate-100 dark:hover:bg-[#1E232B] transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-[#A0A6B5] leading-relaxed">
-              This will erase current workspace data and re-ingest the realistic multi-source customer dataset through the deterministic processing pipeline.
-            </p>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-[#1F232B]">
-              <button
-                type="button"
-                onClick={() => setShowResetModal(false)}
-                disabled={isResetting}
-                className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-[#2A303C] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E232B] transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReset}
-                disabled={isResetting}
-                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
-              >
-                {isResetting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Resetting...</span>
-                  </>
-                ) : (
-                  <span>Confirm Reset</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* In-App Confirmation Modal: Clear Workspace */}
       {showClearModal && (

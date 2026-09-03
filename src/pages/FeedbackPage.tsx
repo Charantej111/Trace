@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useTraceStore } from '@/lib/store';
 import { Feedback } from '@/types/trace';
-import { Search, Upload } from 'lucide-react';
+import { Search, Upload, Star } from 'lucide-react';
 import { FeedbackDetailDrawer } from '@/components/feedback/FeedbackDetailDrawer';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { Link } from 'react-router-dom';
+import { GooglePlayIcon, AppStoreIcon } from '@/components/ui/store-icons';
 import {
   getCustomerDisplayName,
   getSegmentDisplayName,
@@ -173,19 +174,46 @@ export function FeedbackPage() {
                         {getCustomerDisplayName(item.customerName)}
                       </td>
                       <td className="py-3 px-3.5 font-mono text-[11px] uppercase text-slate-500 dark:text-[#64748B] whitespace-nowrap">
-                        {formatSourceType(item.sourceType)}
+                        <div className="flex items-center gap-1.5">
+                          {item.sourceType === 'google_play' && <GooglePlayIcon className="w-3.5 h-3.5 shrink-0" />}
+                          {item.sourceType === 'app_store' && <AppStoreIcon className="w-3.5 h-3.5 rounded-xs shrink-0" />}
+                          <span>{formatSourceType(item.sourceType)}</span>
+                        </div>
                       </td>
                       <td className="py-3 px-3.5 font-normal text-slate-800 dark:text-[#C9CDD8] max-w-md truncate">
-                        "{item.originalText}"
+                        <div className="flex items-center gap-2 truncate">
+                          {item.rating !== undefined && (
+                            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200/60 dark:border-amber-900/40">
+                              <Star className="w-2.5 h-2.5 fill-current" />
+                              {item.rating}
+                            </span>
+                          )}
+                          <span className="truncate">"{item.originalText}"</span>
+                        </div>
                       </td>
                       <td className="py-3 px-3.5 whitespace-nowrap">
-                        <span className={`px-2 py-0.2 rounded text-[10px] font-mono font-bold uppercase ${
-                          severity === 'critical' || severity === 'high'
-                            ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400'
-                            : 'bg-slate-100 dark:bg-[#1C2029] text-slate-700 dark:text-[#8C92A4]'
-                        }`}>
-                          {severity}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {primaryAtom?.intent && (
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                              primaryAtom.intent === 'praise'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/60'
+                                : primaryAtom.intent === 'bug_report'
+                                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60'
+                                : 'bg-slate-100 dark:bg-[#1C2029] text-slate-700 dark:text-[#8C92A4]'
+                            }`}>
+                              {primaryAtom.intent.replace('_', ' ')}
+                            </span>
+                          )}
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                            severity === 'critical' || severity === 'high'
+                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400'
+                              : severity === 'none'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
+                              : 'bg-slate-100 dark:bg-[#1C2029] text-slate-700 dark:text-[#8C92A4]'
+                          }`}>
+                            {severity}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-3.5 text-slate-600 dark:text-[#8C92A4] whitespace-nowrap">
                         {getSegmentDisplayName(item.customerSegmentName)}

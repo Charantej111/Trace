@@ -15,6 +15,7 @@ export function Header() {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Overview';
+    if (path.startsWith('/audit')) return 'Audit';
     if (path.startsWith('/inbox')) return 'Inbox';
     if (path.startsWith('/feedback')) return 'Feedback Explorer';
     if (path.startsWith('/insights')) return 'Insights & Clusters';

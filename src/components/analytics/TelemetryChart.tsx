@@ -12,17 +12,15 @@ import { Activity } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 
 export function TelemetryChart() {
-  const { feedbackList, isDemoMode } = useTraceStore();
+  const { feedbackList } = useTraceStore();
 
   const chartData = useMemo(() => {
     if (feedbackList.length === 0) {
       return [];
     }
 
-    // Group feedback by date / week
+    // Group real feedback by date
     const dateMap: Record<string, number> = {};
-    
-    // Default last 6 periods if demo mode or feedback has timestamps
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now);
@@ -44,17 +42,14 @@ export function TelemetryChart() {
       }
     });
 
-    // If demo mode or counts are low, add realistic progression
-    const entries = Object.entries(dateMap).map(([period, count], idx) => {
-      const simulatedBase = isDemoMode ? (idx + 1) * 8 + Math.floor(Math.random() * 6) : count;
-      return {
-        period,
-        feedbackCount: Math.max(count, simulatedBase)
-      };
-    });
+    // Plot exact persisted feedback counts per date bucket
+    const entries = Object.entries(dateMap).map(([period, count]) => ({
+      period,
+      feedbackCount: count
+    }));
 
     return entries;
-  }, [feedbackList, isDemoMode]);
+  }, [feedbackList]);
 
   const hasData = chartData.length > 0 && feedbackList.length > 0;
 

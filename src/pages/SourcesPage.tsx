@@ -15,14 +15,18 @@ import {
   Database,
   Plus,
   RefreshCw,
-  Info
+  Info,
+  Smartphone,
+  ExternalLink
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
-import { CONNECTOR_CATALOG } from '@/evidence';
+import { GooglePlayIcon, AppStoreIcon } from '@/components/ui/store-icons';
 import { IngestionWizardModal } from '@/components/ingestion/IngestionWizardModal';
 import { PasteFeedbackModal } from '@/components/ingestion/PasteFeedbackModal';
 import { ImportDetailsModal } from '@/components/ingestion/ImportDetailsModal';
-import { ImportJob } from '@/types/trace';
+import { AppReviewIngestionModal } from '@/components/ingestion/AppReviewIngestionModal';
+import { ImportJob, SourceType } from '@/types/trace';
+import { ReviewPlatform } from '@/evidence/adapters/review-source-adapter';
 
 interface IngestionMethod {
   id: string;
@@ -30,10 +34,19 @@ interface IngestionMethod {
   description: string;
   actionText: string;
   icon: React.ComponentType<{ className?: string }>;
-  modal: 'wizard_csv' | 'wizard_xlsx' | 'wizard_json' | 'paste';
+  modal: 'wizard_csv' | 'wizard_xlsx' | 'wizard_json' | 'paste' | 'app_reviews';
+  platform?: ReviewPlatform;
 }
 
 const AVAILABLE_INGESTION_METHODS: IngestionMethod[] = [
+  {
+    id: 'app_reviews',
+    name: 'App Store & Play Store',
+    description: 'Enter a public Google Play or Apple App Store URL to fetch real user reviews.',
+    actionText: 'Fetch Reviews',
+    icon: Smartphone,
+    modal: 'app_reviews'
+  },
   {
     id: 'csv',
     name: 'CSV File (.csv)',
@@ -70,11 +83,20 @@ const AVAILABLE_INGESTION_METHODS: IngestionMethod[] = [
 
 export function SourcesPage() {
   const {
+    sources,
     importJobs
   } = useTraceStore();
 
-  const [activeModal, setActiveModal] = useState<'none' | 'wizard_csv' | 'wizard_xlsx' | 'wizard_json' | 'paste'>('none');
+  const [activeModal, setActiveModal] = useState<
+    'none' | 'wizard_csv' | 'wizard_xlsx' | 'wizard_json' | 'paste' | 'app_reviews'
+  >('none');
+  const [reviewPlatform, setReviewPlatform] = useState<ReviewPlatform>('google_play');
   const [selectedImportJob, setSelectedImportJob] = useState<ImportJob | null>(null);
+
+  // Filter configured app review sources from database
+  const configuredAppSources = sources.filter(
+    s => s.type === 'google_play' || s.type === 'app_store'
+  );
 
   const getSourceIcon = (type: string) => {
     switch (type) {
@@ -107,11 +129,22 @@ export function SourcesPage() {
             Feedback Sources
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
-            Bring customer feedback into Trace from files, quick capture, or connected tools.
+            Bring customer feedback into Trace from public app stores, spreadsheets, or quick capture.
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
+          <button
+            onClick={() => {
+              setReviewPlatform('google_play');
+              setActiveModal('app_reviews');
+            }}
+            className="px-3.5 py-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            <span>Import App Reviews</span>
+          </button>
+
           <button
             onClick={() => setActiveModal('paste')}
             className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-[#1E293B] hover:bg-slate-200 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 font-semibold transition-colors flex items-center gap-1.5"
@@ -122,7 +155,7 @@ export function SourcesPage() {
 
           <button
             onClick={() => setActiveModal('wizard_csv')}
-            className="px-4 py-2 rounded-xl bg-[#2E8B75] hover:bg-[#1F6B58] text-white font-bold text-xs shadow-2xs transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-[#2E8B75] hover:bg-[#267361] text-white font-semibold shadow-sm transition-colors flex items-center gap-1.5"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Upload File</span>
@@ -130,98 +163,221 @@ export function SourcesPage() {
         </div>
       </div>
 
-      {/* Primary Section 1: Ingest Feedback (Available Now) */}
+      {/* Configured App Review Sources from Supabase */}
+      {configuredAppSources.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">
+              CONFIGURED APP STORE SOURCES ({configuredAppSources.length})
+            </h2>
+            <span className="text-[11px] text-teal-600 dark:text-teal-400 font-mono">
+              Live Supabase Persistence
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {configuredAppSources.map(source => {
+              const isGoogle = source.type === 'google_play';
+              return (
+                <div
+                  key={source.id}
+                  className="p-4 rounded-xl surface-card border border-slate-200 dark:border-white/10 space-y-3 relative overflow-hidden"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center p-1.5 shrink-0">
+                        {isGoogle ? (
+                          <GooglePlayIcon className="w-5 h-5" />
+                        ) : (
+                          <AppStoreIcon className="w-5 h-5 rounded-md" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 dark:text-[#EDEDED] text-xs truncate max-w-42.5">
+                          {source.name}
+                        </h3>
+                        <span className="text-[10px] font-mono text-slate-400 uppercase">
+                          {isGoogle ? 'Google Play' : 'App Store'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold uppercase tracking-wider bg-teal-500/10 text-teal-600 dark:text-teal-400">
+                      Active
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-mono">PERSISTED REVIEWS</span>
+                      <span className="font-bold text-slate-900 dark:text-[#EDEDED] font-mono">
+                        {source.recordCount.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block font-mono">LAST SYNCED</span>
+                      <span className="text-[11px] text-slate-600 dark:text-slate-300 font-mono">
+                        {source.lastSyncedAt ? new Date(source.lastSyncedAt).toLocaleDateString() : 'Just now'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Primary Section 1: Ingestion Methods */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">
-            IMPORT FEEDBACK (AVAILABLE NOW)
-          </h2>
-          <span className="text-[11px] text-emerald-600 dark:text-[#10B981] font-mono font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> {AVAILABLE_INGESTION_METHODS.length} Ingestion Methods Active
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {AVAILABLE_INGESTION_METHODS.map((method) => {
-            const Icon = method.icon;
-
-            return (
-              <div
-                key={method.id}
-                onClick={() => setActiveModal(method.modal)}
-                className="p-4 rounded-xl surface-card surface-card-hover cursor-pointer space-y-3 group"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-lg bg-[#2E8B75]/10 text-[#2E8B75] dark:text-[#10B981] flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-[#10B981] border border-emerald-200/80 dark:border-emerald-900/60">
-                    ACTIVE
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs group-hover:text-[#2E8B75] dark:group-hover:text-[#10B981] transition-colors">
-                    {method.name}
-                  </h3>
-                  <p className="text-slate-500 dark:text-[#8C92A4] text-[11px] mt-1 leading-relaxed">
-                    {method.description}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex items-center justify-between text-[11px] font-semibold text-[#2E8B75] dark:text-[#10B981]">
-                  <span>{method.actionText}</span>
-                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Primary Section 2: Coming Soon Connectors */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">
-            CONNECTED SOURCES · COMING SOON
+            DIRECT INGESTION WORKFLOWS
           </h2>
           <span className="text-[11px] text-slate-400 dark:text-[#525866] font-mono">
-            {CONNECTOR_CATALOG.length} Sources on Roadmap
+            Deterministic Normalization & PII Redaction
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {CONNECTOR_CATALOG.map((connector) => {
-            const Icon = getSourceIcon(connector.id);
+          {AVAILABLE_INGESTION_METHODS.map((method) => {
+            const Icon = method.icon;
+            const isAppReview = method.id === 'app_reviews';
 
             return (
               <div
-                key={connector.id}
-                className="p-4 rounded-xl surface-card opacity-85 hover:opacity-100 transition-opacity space-y-2.5"
+                key={method.id}
+                className={`p-4 rounded-xl surface-card flex flex-col justify-between space-y-3 transition-all ${
+                  isAppReview
+                    ? 'border-2 border-teal-500/30 bg-teal-500/2 shadow-sm'
+                    : 'hover:border-slate-300 dark:hover:border-[#334155]'
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-[#181B22] text-slate-600 dark:text-[#8C92A4] flex items-center justify-center">
-                    <Icon className="w-4 h-4" />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      isAppReview
+                        ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+                        : 'bg-slate-100 dark:bg-[#1E293B] text-[#2E8B75]'
+                    }`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    {isAppReview && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                        Real Data
+                      </span>
+                    )}
                   </div>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-slate-100 dark:bg-[#181B22] text-slate-500 dark:text-[#8C92A4] border border-slate-200 dark:border-[#232833]">
-                    COMING SOON
-                  </span>
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-[#EDEDED] text-sm">
+                      {method.name}
+                    </h3>
+                    <p className="text-slate-500 dark:text-[#8C92A4] text-xs mt-1 leading-relaxed">
+                      {method.description}
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-[#EDEDED] text-xs">
-                    {connector.name}
-                  </h3>
-                  <p className="text-slate-500 dark:text-[#8C92A4] text-[11px] mt-0.5 leading-relaxed">
-                    {connector.description}
-                  </p>
-                </div>
+                <button
+                  onClick={() => {
+                    if (method.modal === 'app_reviews') {
+                      setReviewPlatform('google_play');
+                      setActiveModal('app_reviews');
+                    } else {
+                      setActiveModal(method.modal);
+                    }
+                  }}
+                  className={`w-full py-2 px-3 rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 ${
+                    isAppReview
+                      ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-md shadow-teal-600/10'
+                      : 'bg-slate-100 dark:bg-[#1E293B] hover:bg-slate-200 dark:hover:bg-[#334155] text-slate-800 dark:text-slate-200'
+                  }`}
+                >
+                  <span>{method.actionText}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             );
           })}
         </div>
       </div>
 
+      {/* Primary Section 2: Store Connectors */}
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">
+            SUPPORTED STORE CONNECTORS
+          </h2>
+          <span className="text-[11px] text-slate-400 dark:text-[#525866] font-mono">
+            Real Public Review Ingestion
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Google Play Card */}
+          <div className="p-4 rounded-xl surface-card border border-slate-200 dark:border-white/10 space-y-3 flex flex-col justify-between">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center p-2 shrink-0">
+                  <GooglePlayIcon className="w-5 h-5" />
+                </div>
+                <span className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold uppercase tracking-wider bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                  Live Store
+                </span>
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-[#EDEDED] text-sm">
+                  Google Play Store
+                </h3>
+                <p className="text-slate-500 dark:text-[#8C92A4] text-xs mt-1 leading-relaxed">
+                  Enter any public Google Play app URL (e.g. Spotify, Slack, WhatsApp) to pull real Android user reviews, star ratings, and device versions.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setReviewPlatform('google_play');
+                setActiveModal('app_reviews');
+              }}
+              className="py-2.5 px-3 rounded-xl font-semibold text-xs bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <span>Fetch Google Play Reviews</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Apple App Store Card */}
+          <div className="p-4 rounded-xl surface-card border border-slate-200 dark:border-white/10 space-y-3 flex flex-col justify-between">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center p-1.5 shrink-0">
+                  <AppStoreIcon className="w-6 h-6 rounded shadow-xs" />
+                </div>
+                <span className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold uppercase tracking-wider bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                  Live Store
+                </span>
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-[#EDEDED] text-sm">
+                  Apple App Store
+                </h3>
+                <p className="text-slate-500 dark:text-[#8C92A4] text-xs mt-1 leading-relaxed">
+                  Enter any public Apple App Store URL to pull real iOS user reviews, star ratings, review titles, and app versions.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setReviewPlatform('app_store');
+                setActiveModal('app_reviews');
+              }}
+              className="py-2.5 px-3 rounded-xl font-semibold text-xs bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <span>Fetch App Store Reviews</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Section 3: Import History & Audit Trail */}
       <div className="space-y-3 pt-2">
@@ -236,7 +392,7 @@ export function SourcesPage() {
             <div className="p-8 text-center text-xs text-slate-400 dark:text-[#525866] space-y-2">
               <Database className="w-6 h-6 mx-auto text-slate-400 dark:text-[#525866]" />
               <p className="font-semibold text-slate-700 dark:text-[#EDEDED]">No Imports Recorded Yet</p>
-              <p className="text-[11px]">Upload a CSV, Excel, or JSON file above to see provenance and ingestion logs.</p>
+              <p className="text-[11px]">Import real app reviews, CSV, Excel, or JSON above to see provenance and ingestion logs.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -300,6 +456,13 @@ export function SourcesPage() {
       </div>
 
       {/* Modal Dialogs */}
+      {activeModal === 'app_reviews' && (
+        <AppReviewIngestionModal
+          initialPlatform={reviewPlatform}
+          onClose={() => setActiveModal('none')}
+        />
+      )}
+
       {activeModal === 'wizard_csv' && (
         <IngestionWizardModal
           initialFormat="csv"

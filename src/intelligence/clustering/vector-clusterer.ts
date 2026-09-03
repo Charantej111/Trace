@@ -45,11 +45,33 @@ export class VectorClusterer {
     return mean.map(v => v / norm);
   }
 
+  public static generateFallbackEmbedding(text: string): number[] {
+    const dim = 64;
+    const vec = new Array(dim).fill(0);
+    for (let i = 0; i < text.length; i++) {
+      const code = text.charCodeAt(i);
+      vec[code % dim] += 1;
+      vec[(code * 7) % dim] += 0.5;
+    }
+    const norm = Math.sqrt(vec.reduce((acc, v) => acc + v * v, 0)) || 1.0;
+    return vec.map(v => v / norm);
+  }
+
   /**
    * Deterministically clusters atoms using cosine similarity threshold.
+   * Resilient: If embeddings are missing, generates deterministic fallback embeddings so clustering never fails.
    */
   public static clusterAtoms(atoms: FeedbackAtom[]): CandidateCluster[] {
-    const verifiedAtoms = atoms.filter(a => a.verificationStatus === 'verified' && a.embedding && a.embedding.length > 0);
+    const verifiedAtoms = atoms.filter(a => a.verificationStatus === 'verified');
+    if (verifiedAtoms.length === 0) return [];
+
+    // Ensure all verified atoms have valid embeddings
+    verifiedAtoms.forEach(atom => {
+      if (!atom.embedding || atom.embedding.length === 0) {
+        atom.embedding = VectorClusterer.generateFallbackEmbedding(atom.atomText);
+      }
+    });
+
     const clusters: CandidateCluster[] = [];
 
     verifiedAtoms.forEach(atom => {

@@ -10,12 +10,25 @@ interface PasteFeedbackModalProps {
 }
 
 export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
-  const { ingestCanonicalBatch } = useTraceStore();
+  const { ingestCanonicalBatch, customerSegments } = useTraceStore();
   const { addToast } = useToast();
+
+  const segmentOptions = [
+    ...(customerSegments && customerSegments.length > 0
+      ? customerSegments.map((s) => ({ value: s.name, label: s.name }))
+      : [
+          { value: 'Enterprise', label: 'Enterprise' },
+          { value: 'Mid-Market', label: 'Mid-Market' },
+          { value: 'SMB', label: 'SMB' },
+          { value: 'Startup', label: 'Startup' },
+          { value: 'Free Tier', label: 'Free Tier' }
+        ]),
+    { value: 'Unassigned', label: 'Unassigned' }
+  ];
 
   const [rawInput, setRawInput] = useState('');
   const [channelName, setChannelName] = useState('Quick Paste');
-  const [segment, setSegment] = useState('SMB');
+  const [segment, setSegment] = useState(segmentOptions[0]?.value || 'SMB');
   const [rating, setRating] = useState<number | ''>('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -102,7 +115,7 @@ export function PasteFeedbackModal({ onClose }: PasteFeedbackModalProps) {
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl surface-glass rounded-2xl border border-slate-200 dark:border-white/8 shadow-2xl overflow-hidden text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-xl surface-glass rounded-2xl border border-slate-200 dark:border-white/8 shadow-2xl overflow-visible relative text-xs space-y-4 p-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/8 pb-3.5">
           <div className="flex items-center gap-2.5">
@@ -153,7 +166,7 @@ Please add bulk export capability for weekly reports.`}
         </div>
 
         {/* Advanced metadata overrides */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-[10px] font-bold text-slate-400 dark:text-[#525866] font-mono block mb-1">
               SOURCE CHANNEL NAME
@@ -162,7 +175,7 @@ Please add bulk export capability for weekly reports.`}
               type="text"
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
-              className="w-full p-2 rounded-lg bg-slate-50 dark:bg-[#13151A] border border-slate-200 dark:border-white/8 text-xs font-semibold text-slate-900 dark:text-[#EDEDED] focus:outline-none"
+              className="w-full h-8.5 px-3 py-1.5 rounded-lg bg-white dark:bg-[#121418] border border-slate-200 dark:border-[#1F232B] text-xs font-semibold text-slate-900 dark:text-[#EDEDED] focus:outline-none focus:border-[#2E8B75] dark:focus:border-[#10B981] shadow-2xs"
             />
           </div>
 
@@ -171,13 +184,8 @@ Please add bulk export capability for weekly reports.`}
               CUSTOMER SEGMENT
             </label>
             <CustomSelect
-              options={[
-                { value: 'Enterprise', label: 'Enterprise' },
-                { value: 'Mid-Market', label: 'Mid-Market' },
-                { value: 'SMB', label: 'SMB' },
-                { value: 'Startup', label: 'Startup' },
-                { value: 'Free Tier', label: 'Free Tier' }
-              ]}
+              direction="up"
+              options={segmentOptions}
               value={segment}
               onChange={setSegment}
               className="w-full"
@@ -189,13 +197,14 @@ Please add bulk export capability for weekly reports.`}
               RATING (OPTIONAL)
             </label>
             <CustomSelect
+              direction="up"
               options={[
                 { value: '', label: 'Unspecified' },
-                { value: '1', label: '1 Star / Poor' },
-                { value: '2', label: '2 Stars' },
-                { value: '3', label: '3 Stars / Neutral' },
-                { value: '4', label: '4 Stars' },
-                { value: '5', label: '5 Stars / Excellent' }
+                { value: '1', label: '⭐ 1 Star (Poor)' },
+                { value: '2', label: '⭐⭐ 2 Stars' },
+                { value: '3', label: '⭐⭐⭐ 3 Stars (Neutral)' },
+                { value: '4', label: '⭐⭐⭐⭐ 4 Stars' },
+                { value: '5', label: '⭐⭐⭐⭐⭐ 5 Stars (Excellent)' }
               ]}
               value={String(rating)}
               onChange={(val) => setRating(val ? Number(val) : '')}

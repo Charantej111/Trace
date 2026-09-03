@@ -86,16 +86,17 @@ export class ExplainableScoringEngine {
     const atomMap = new Map<string, FeedbackAtom>();
     params.atoms.forEach(a => atomMap.set(a.id, a));
 
+    // Hard Evidence Gate Check: Must have insights to synthesize opportunities
+    if (params.insights.length === 0) {
+      return [];
+    }
+
     for (const insight of params.insights) {
-      // Hard Evidence Gate Check: Must have verified supporting evidence
-      if (!insight.evidence || insight.evidence.length === 0) {
-        continue;
-      }
-
-      const insightAtoms = insight.evidence
+      const insightAtoms = (insight.evidence || [])
         .map(e => atomMap.get(e.atomId))
-        .filter((a): a is FeedbackAtom => a !== undefined);
+        .filter((a): a is FeedbackAtom => a !== undefined && a.verificationStatus === 'verified');
 
+      // Hard Evidence Gate Check: Must have verified supporting evidence atoms
       if (insightAtoms.length === 0) {
         continue;
       }

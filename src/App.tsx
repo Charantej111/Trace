@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { OverviewPage } from '@/pages/OverviewPage';
+import { AuditPage } from '@/pages/AuditPage';
 import { InboxPage } from '@/pages/InboxPage';
 import { FeedbackPage } from '@/pages/FeedbackPage';
 import { InsightsPage } from '@/pages/InsightsPage';
@@ -18,6 +19,7 @@ export function App() {
       <CommandPalette />
       <Routes>
         <Route path="/" element={<OverviewPage />} />
+        <Route path="/audit" element={<AuditPage />} />
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/insights" element={<InsightsPage />} />

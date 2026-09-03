@@ -13,38 +13,13 @@ import {
   Zap,
   CheckCircle2,
   XCircle,
-  Upload,
-  Loader2
+  Upload
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
-import { useToast } from '@/components/ui/toast';
 import { TelemetryChart } from '@/components/analytics/TelemetryChart';
 
 export function OverviewPage() {
-  const { feedbackList, painPoints, opportunities, roadmapItems, decisions, resetToDemoData } = useTraceStore();
-  const { addToast } = useToast();
-  const [isResetting, setIsResetting] = useState(false);
-
-  const handleExploreSample = async () => {
-    setIsResetting(true);
-    try {
-      await resetToDemoData();
-      addToast({
-        type: 'info',
-        title: 'Sample Dataset Loaded',
-        description: 'Realistic customer feedback processed and analyzed.'
-      });
-    } catch (err) {
-      console.error('Reset error:', err);
-      addToast({
-        type: 'error',
-        title: 'Loading Failed',
-        description: err instanceof Error ? err.message : 'Failed to load sample dataset.'
-      });
-    } finally {
-      setIsResetting(false);
-    }
-  };
+  const { feedbackList, painPoints, opportunities, roadmapItems, decisions } = useTraceStore();
 
   const totalFeedback = feedbackList.length;
   const totalPainPoints = painPoints.length;
@@ -57,14 +32,14 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-5 text-slate-900 dark:text-[#EDEDED]">
-      {/* Editorial Header */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-[#1F232B] pb-3.5">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-[#EDEDED] tracking-tight">
-            Good morning
+            Workspace Overview
           </h1>
           <p className="text-xs text-slate-500 dark:text-[#8C92A4] mt-0.5 font-mono">
-            Customer feedback overview · Last 30 days
+            Customer feedback overview · Verified evidence metrics
           </p>
         </div>
 
@@ -105,18 +80,13 @@ export function OverviewPage() {
         </div>
       )}
 
-
-
-      {/* Handcrafted Split KPI Bar */}
+      {/* Key Metrics */}
       <div className="p-4 rounded-xl surface-card flex flex-col md:flex-row md:items-center justify-between gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-[#1F232B]">
         <div className="flex-1 md:pr-4 space-y-1">
           <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-[#525866] uppercase tracking-wider">TOTAL FEEDBACK</span>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold font-mono-numbers text-slate-900 dark:text-[#EDEDED]">
               {totalFeedback.toLocaleString()}
-            </span>
-            <span className="text-[11px] font-mono text-emerald-600 dark:text-[#10B981] font-semibold">
-              +12.4% vs prev
             </span>
           </div>
           <p className="text-[10px] text-slate-500 dark:text-[#8C92A4] font-mono">Verified customer statements</p>
@@ -203,7 +173,7 @@ export function OverviewPage() {
                     <div className="flex items-center gap-3 shrink-0 text-right pl-3.5 sm:pl-0">
                       <div>
                         <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
-                          +{issue.trendPercentage || 34}%
+                          +{issue.trendPercentage || 0}%
                         </span>
                         <p className="text-[10px] text-slate-400 dark:text-[#525866] font-mono">{issue.frequency} reports</p>
                       </div>
@@ -249,7 +219,11 @@ export function OverviewPage() {
                   </p>
 
                   <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-[#525866]">
-                    <span>Enterprise (68%) · SMB (32%)</span>
+                    <span>
+                      {theme.affectedSegments && theme.affectedSegments.length > 0
+                        ? theme.affectedSegments.slice(0, 2).map(s => `${s.segment} (${s.percentage}%)`).join(' · ')
+                        : 'All Segments'}
+                    </span>
                     <span className="font-semibold text-[#2E8B75] dark:text-[#10B981]">
                       {theme.isEmerging ? 'Emerging Spike' : 'Stable Volume'}
                     </span>

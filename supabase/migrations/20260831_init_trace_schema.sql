@@ -1,5 +1,5 @@
 -- Trace Master Database Schema
--- Version: 2.0 (Includes Feedback Atoms, Product Context, Decision Memory, and Post-Ship Metrics)
+-- Version: 2.1 (Universal text IDs for flexible string/UUID keys, vector support, atom constraints)
 
 -- Extensions
 create extension if not exists "uuid-ossp";
@@ -15,18 +15,18 @@ create table if not exists profiles (
 );
 
 create table if not exists workspaces (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key default gen_random_uuid()::text,
   name text not null,
   slug text unique not null,
   product_name text,
   product_category text,
-  created_by uuid not null references auth.users(id),
+  created_by uuid references auth.users(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create table if not exists workspace_members (
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  workspace_id text not null references workspaces(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   role text not null default 'member' check (role in ('owner', 'admin', 'member', 'viewer')),
   created_at timestamptz not null default now(),
@@ -35,7 +35,7 @@ create table if not exists workspace_members (
 
 -- 2. Product Context
 create table if not exists product_context (
-  workspace_id uuid primary key references workspaces(id) on delete cascade,
+  workspace_id text primary key references workspaces(id) on delete cascade,
   company_goals jsonb not null default '[]',
   target_segments jsonb not null default '[]',
   strategic_focus_areas jsonb not null default '[]',
@@ -45,8 +45,8 @@ create table if not exists product_context (
 
 -- 3. Sources & Ingestion
 create table if not exists feedback_sources (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
   type text not null check (type in ('csv', 'xlsx', 'json', 'paste', 'google_play', 'app_store', 'zendesk', 'intercom', 'sales_call', 'survey', 'api', 'other')),
   name text not null,
   status text not null default 'active',
@@ -56,9 +56,9 @@ create table if not exists feedback_sources (
 );
 
 create table if not exists imports (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  source_id uuid references feedback_sources(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  source_id text references feedback_sources(id) on delete set null,
   status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'completed_with_warnings', 'failed', 'cancelled')),
   file_name text,
   file_type text,
@@ -75,8 +75,8 @@ create table if not exists imports (
 
 -- 4. Customer Metadata & Segments
 create table if not exists customer_segments (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
   name text not null,
   description text,
   strategic_weight numeric default 1.0,
@@ -84,10 +84,10 @@ create table if not exists customer_segments (
 );
 
 create table if not exists customers (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
   external_id text,
-  segment_id uuid references customer_segments(id) on delete set null,
+  segment_id text references customer_segments(id) on delete set null,
   display_name text,
   metadata jsonb not null default '{}',
   created_at timestamptz not null default now()
@@ -95,19 +95,19 @@ create table if not exists customers (
 
 -- 5. Raw Feedback & Evidence
 create table if not exists feedback (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  source_id uuid references feedback_sources(id) on delete set null,
-  import_id uuid references imports(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  source_id text references feedback_sources(id) on delete set null,
+  import_id text references imports(id) on delete set null,
   external_id text,
   original_text text not null,
   analysis_text text,
   language text default 'en',
   source_created_at timestamptz,
   imported_at timestamptz not null default now(),
-  customer_id uuid references customers(id) on delete set null,
+  customer_id text references customers(id) on delete set null,
   customer_name text,
-  customer_segment_id uuid references customer_segments(id) on delete set null,
+  customer_segment_id text references customer_segments(id) on delete set null,
   customer_segment_name text,
   rating numeric,
   app_version text,
@@ -122,9 +122,9 @@ create table if not exists feedback (
 
 -- 6. Feedback Atoms
 create table if not exists feedback_atoms (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  feedback_id uuid not null references feedback(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  feedback_id text not null references feedback(id) on delete cascade,
   atom_text text not null,
   source_start integer not null,
   source_end integer not null,
@@ -135,14 +135,16 @@ create table if not exists feedback_atoms (
   is_feature_request boolean default false,
   underlying_problem_hint text,
   confidence text not null default 'medium' check (confidence in ('high', 'medium', 'low')),
-  embedding vector(1536),
-  created_at timestamptz not null default now()
+  embedding vector,
+  created_at timestamptz not null default now(),
+  constraint unique_atom_span unique (feedback_id, source_start, source_end),
+  constraint valid_atom_bounds check (source_start >= 0 and source_end > source_start)
 );
 
 -- 7. Themes & Candidate Clusters
 create table if not exists themes (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
   name text not null,
   description text,
   atom_count integer not null default 0,
@@ -153,8 +155,8 @@ create table if not exists themes (
 );
 
 create table if not exists theme_atoms (
-  theme_id uuid not null references themes(id) on delete cascade,
-  atom_id uuid not null references feedback_atoms(id) on delete cascade,
+  theme_id text not null references themes(id) on delete cascade,
+  atom_id text not null references feedback_atoms(id) on delete cascade,
   similarity_score numeric,
   created_at timestamptz not null default now(),
   primary key (theme_id, atom_id)
@@ -162,9 +164,9 @@ create table if not exists theme_atoms (
 
 -- 8. Pain Points & Emerging Issues
 create table if not exists pain_points (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  theme_id uuid references themes(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  theme_id text references themes(id) on delete set null,
   title text not null,
   description text not null,
   severity text check (severity in ('low', 'medium', 'high', 'critical')),
@@ -179,9 +181,9 @@ create table if not exists pain_points (
 
 -- 9. Insights & Evidence
 create table if not exists insights (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  pain_point_id uuid references pain_points(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  pain_point_id text references pain_points(id) on delete set null,
   title text not null,
   summary text not null,
   insight_type text not null check (insight_type in ('pain_point', 'feature_request', 'trend', 'emerging_issue', 'divergent_signal')),
@@ -194,9 +196,9 @@ create table if not exists insights (
 );
 
 create table if not exists insight_evidence (
-  insight_id uuid not null references insights(id) on delete cascade,
-  atom_id uuid not null references feedback_atoms(id) on delete cascade,
-  feedback_id uuid not null references feedback(id) on delete cascade,
+  insight_id text not null references insights(id) on delete cascade,
+  atom_id text not null references feedback_atoms(id) on delete cascade,
+  feedback_id text not null references feedback(id) on delete cascade,
   evidence_type text not null default 'supporting' check (evidence_type in ('supporting', 'contradicting', 'neutral')),
   quote_text text not null,
   relevance_score numeric,
@@ -206,9 +208,9 @@ create table if not exists insight_evidence (
 
 -- 10. Opportunities with 6-Factor Scoring
 create table if not exists opportunities (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  insight_id uuid references insights(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  insight_id text references insights(id) on delete set null,
   title text not null,
   problem_statement text not null,
   opportunity_statement text not null,
@@ -228,24 +230,24 @@ create table if not exists opportunities (
 
 -- 11. Product Decision Memory
 create table if not exists product_decisions (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  opportunity_id uuid references opportunities(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  opportunity_id text references opportunities(id) on delete set null,
   title text not null,
   decision text not null check (decision in ('accepted', 'rejected_wont_do', 'deferred', 'workaround_exists')),
   rationale text not null,
   evidence_snapshot jsonb not null default '{}',
-  alternative_prioritized_id uuid references opportunities(id) on delete set null,
+  alternative_prioritized_id text references opportunities(id) on delete set null,
   decided_by uuid references auth.users(id),
   decided_at timestamptz not null default now()
 );
 
 -- 12. Roadmap Items & Post-Ship Impact
 create table if not exists roadmap_items (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  opportunity_id uuid references opportunities(id) on delete set null,
-  decision_id uuid references product_decisions(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  opportunity_id text references opportunities(id) on delete set null,
+  decision_id text references product_decisions(id) on delete set null,
   title text not null,
   description text,
   status text not null default 'idea' check (status in ('idea', 'candidate', 'planned', 'in_progress', 'shipped', 'archived')),
@@ -260,9 +262,9 @@ create table if not exists roadmap_items (
 
 -- 13. Processing Jobs Hierarchy (3-Level Durable Engine)
 create table if not exists processing_jobs (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  import_id uuid references imports(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  import_id text references imports(id) on delete cascade,
   idempotency_key text not null,
   type text not null default 'import' check (type in ('import', 'reprocess', 'incremental')),
   status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'failed', 'partially_failed')),
@@ -278,8 +280,8 @@ create table if not exists processing_jobs (
 );
 
 create table if not exists processing_job_stages (
-  id uuid primary key default gen_random_uuid(),
-  job_id uuid not null references processing_jobs(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  job_id text not null references processing_jobs(id) on delete cascade,
   stage text not null check (stage in (
     'normalization', 'atomization', 'classification', 'embedding',
     'clustering', 'theme_generation', 'pain_point_generation',
@@ -298,11 +300,11 @@ create table if not exists processing_job_stages (
 );
 
 create table if not exists processing_job_items (
-  id uuid primary key default gen_random_uuid(),
-  stage_id uuid not null references processing_job_stages(id) on delete cascade,
-  job_id uuid not null references processing_jobs(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  stage_id text not null references processing_job_stages(id) on delete cascade,
+  job_id text not null references processing_jobs(id) on delete cascade,
   entity_type text not null check (entity_type in ('feedback', 'atom', 'cluster', 'pain_point', 'insight')),
-  entity_id uuid not null,
+  entity_id text not null,
   status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'failed')),
   attempt integer default 1,
   error text,
@@ -314,9 +316,9 @@ create table if not exists processing_job_items (
 
 -- 14. AI Run Tracking & Cost Guard
 create table if not exists ai_runs (
-  id uuid primary key default gen_random_uuid(),
-  workspace_id uuid not null references workspaces(id) on delete cascade,
-  job_id uuid references processing_jobs(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  workspace_id text not null references workspaces(id) on delete cascade,
+  job_id text references processing_jobs(id) on delete set null,
   stage text not null,
   operation text not null,
   provider text not null default 'openai',
@@ -341,11 +343,10 @@ create index if not exists idx_processing_job_stages_job on processing_job_stage
 create index if not exists idx_processing_job_items_stage on processing_job_items(stage_id);
 
 -- RLS Helper
-create or replace function is_workspace_member(ws_id uuid)
+create or replace function is_workspace_member(ws_id text)
 returns boolean as $$
   select exists (
     select 1 from workspace_members
     where workspace_id = ws_id and user_id = auth.uid()
   );
 $$ language sql security definer;
-

@@ -21,7 +21,7 @@ export class GeminiServerClient {
     options?: GeminiGenerateOptions
   ): Promise<string> {
     if (!this.isConfigured()) {
-      return `[Gemini Simulated Response for: ${prompt.slice(0, 40)}...]`;
+      throw new Error('Gemini API key is not configured');
     }
 
     const model = options?.model || this.defaultModel;

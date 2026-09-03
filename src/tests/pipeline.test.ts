@@ -227,7 +227,7 @@ export async function runAllTests(): Promise<{ passed: number; failed: number; l
   // Test 5: Missing customer
   assert(getCustomerDisplayName(undefined) === 'Unknown customer', 'Test 5: Missing customer returns "Unknown customer"');
   assert(getCustomerDisplayName('') === 'Unknown customer', 'Test 5: Empty customer returns "Unknown customer"');
-  assert(getCustomerDisplayName('Acme Inc') === 'Acme Inc', 'Test 5: Persisted customer name is preserved');
+  assert(getCustomerDisplayName('Ofzen LLP') === 'Ofzen LLP', 'Test 5: Persisted customer name is preserved');
 
   // Test 6: Missing segment
   assert(getSegmentDisplayName(undefined) === 'Unassigned', 'Test 6: Missing segment returns "Unassigned"');

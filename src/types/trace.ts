@@ -1,6 +1,36 @@
-export type IntentType = 'bug_report' | 'complaint' | 'feature_request' | 'praise' | 'question';
-export type SentimentType = 'positive' | 'neutral' | 'negative';
-export type SeverityType = 'low' | 'medium' | 'high' | 'critical';
+export type IntentType =
+  | 'praise'
+  | 'complaint'
+  | 'feature_request'
+  | 'bug_report'
+  | 'question'
+  | 'usability_issue'
+  | 'cancellation'
+  | 'pricing'
+  | 'other';
+
+export type SentimentType = 'positive' | 'neutral' | 'negative' | 'mixed';
+
+export type EmotionalState =
+  | 'joy'
+  | 'satisfaction'
+  | 'delight'
+  | 'excitement'
+  | 'gratitude'
+  | 'frustration'
+  | 'anger'
+  | 'disappointment'
+  | 'confusion'
+  | 'sadness'
+  | 'anxiety'
+  | 'relief'
+  | 'trust'
+  | 'neutral'
+  | 'other';
+
+export type SeverityType = 'none' | 'low' | 'medium' | 'high' | 'critical';
+
+export type RatingAlignment = 'strongly_aligned' | 'aligned' | 'mixed' | 'contradictory' | 'unavailable';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 export type VerificationStatus = 'verified' | 'rejected';
 export type SourceType = 'csv' | 'xlsx' | 'json' | 'paste' | 'google_play' | 'app_store' | 'zendesk' | 'intercom' | 'sales_call' | 'survey' | 'api' | 'other';
@@ -177,10 +207,15 @@ export interface FeedbackAtom {
   intent: IntentType;
   sentiment: SentimentType;
   sentimentScore?: number;
+  sentimentLabel?: SentimentType;
+  emotionalState?: EmotionalState;
+  emotionalIntensity?: number;
   severity: SeverityType;
   isFeatureRequest: boolean;
   underlyingProblemHint?: string;
   confidence: ConfidenceLevel;
+  classificationConfidence?: ConfidenceLevel;
+  ratingAlignment?: RatingAlignment;
   verificationStatus: VerificationStatus;
   themeId?: string;
   themeName?: string;

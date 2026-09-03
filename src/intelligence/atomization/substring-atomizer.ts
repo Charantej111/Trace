@@ -21,12 +21,16 @@ export class SubstringAtomizer {
     jobId?: string
   ): Promise<FeedbackAtom[]> {
     const rawOriginal = feedback.originalText || '';
-    const safeAnalysis = feedback.analysisText || rawOriginal;
-    const timestamp = new Date().toISOString();
-
     if (!rawOriginal.trim()) {
       return [];
     }
+
+    if (feedback.analysisText !== undefined && !feedback.analysisText.trim()) {
+      return [];
+    }
+
+    const safeAnalysis = feedback.analysisText || rawOriginal;
+    const timestamp = new Date().toISOString();
 
     // AI/NLP proposes atom clauses based solely on safe analysisText
     let proposed: ProposedAtom[] = [];

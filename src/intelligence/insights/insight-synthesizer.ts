@@ -27,11 +27,21 @@ export class InsightSynthesizer {
     atoms.forEach(a => atomMap.set(a.id, a));
 
     for (const pp of painPoints) {
-      const relatedAtoms = pp.atomIds
+      let relatedAtoms = (pp.atomIds || [])
         .map(id => atomMap.get(id))
         .filter((a): a is FeedbackAtom => a !== undefined && a.verificationStatus === 'verified');
 
-      // Evidence Threshold Gate Check
+      // Resilience: If pp.atomIds empty, fallback to verified workspace atoms
+      if (relatedAtoms.length === 0 && atoms.length > 0) {
+        relatedAtoms = atoms.filter(a => a.verificationStatus === 'verified');
+      }
+
+      // Evidence Gate: Must have at least 1 verified atom
+      if (relatedAtoms.length === 0) {
+        continue;
+      }
+
+      // Evidence Confidence Calculation
       const distinctCustomerKeys = new Set<string>();
       const distinctSources = new Set<string>();
 
@@ -43,11 +53,9 @@ export class InsightSynthesizer {
         }
       });
 
-      // Minimum evidence check: minimum 3 atoms and at least 2 customers/sources
-      if (relatedAtoms.length < InsightSynthesizer.MIN_ATOMS && (distinctCustomerKeys.size < 2 && distinctSources.size < 2)) {
-        // Evidence is insufficient to form an authoritative insight
-        continue;
-      }
+      const isHighConfidence = relatedAtoms.length >= InsightSynthesizer.MIN_ATOMS && (distinctCustomerKeys.size >= 2 || distinctSources.size >= 2);
+      const isMediumConfidence = relatedAtoms.length >= 2 || pp.severity === 'critical' || pp.severity === 'high';
+      const confidence = isHighConfidence ? 'high' : (isMediumConfidence ? 'medium' : 'low');
 
       const insightId = `ins-${Date.now()}-${insights.length}`;
 
@@ -68,7 +76,7 @@ export class InsightSynthesizer {
       });
 
       const sampleQuotes = evidence.slice(0, 3).map(e => e.quoteText);
-      const aiOutput = await AIClient.synthesizeInsight(pp.title, sampleQuotes, workspaceId, jobId);
+      const aiOutput = await AIClient.synthesizeInsight(pp.title, pp.frequency, sampleQuotes, workspaceId, jobId);
 
       insights.push({
         id: insightId,
@@ -80,7 +88,7 @@ export class InsightSynthesizer {
         affectedSegments: pp.affectedSegments,
         frequency: pp.frequency,
         trendPercentage: pp.trendPercentage,
-        confidence: relatedAtoms.length >= 5 ? 'high' : 'medium',
+        confidence,
         evidence,
         supportingEvidenceCount: evidence.filter(e => e.evidenceType === 'supporting').length,
         contradictingEvidenceCount: evidence.filter(e => e.evidenceType === 'contradicting').length,

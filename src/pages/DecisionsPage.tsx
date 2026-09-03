@@ -52,7 +52,7 @@ export function DecisionsPage() {
                 <div className="text-right shrink-0 font-mono text-xs">
                   <span className="text-slate-500 dark:text-[#8C92A4]">Score at Decision: </span>
                   <span className="font-bold text-slate-900 dark:text-[#EDEDED] font-mono-numbers">
-                    {dec.evidenceSnapshot?.scoreAtDecisionTime || 88}/100
+                    {dec.evidenceSnapshot?.scoreAtDecisionTime !== undefined ? `${dec.evidenceSnapshot.scoreAtDecisionTime}/100` : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -70,7 +70,7 @@ export function DecisionsPage() {
               {/* Snapshot Info */}
               <div className="pt-2 border-t border-slate-100 dark:border-[#1F232B] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-500 dark:text-[#525866]">
                 <span>Decided By: {dec.decidedBy || 'Product Lead'}</span>
-                <span>Mentions at Decision: {dec.evidenceSnapshot?.mentionCount || 48} verified quotes</span>
+                <span>Mentions at Decision: {dec.evidenceSnapshot?.mentionCount ?? 0} verified quotes</span>
                 <span>Timestamp: {new Date(dec.decidedAt).toLocaleString()}</span>
               </div>
             </div>

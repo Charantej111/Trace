@@ -1,6 +1,7 @@
 import { PainPoint, Theme, Feedback, FeedbackAtom, SeverityType } from '@/types/trace';
 import { AIClient } from '@/ai/client';
 import { PIPELINE_VERSION } from '@/ai/versioning';
+import { IntelligenceRepo } from '@/repositories/intelligence-repo';
 
 export class PainPointSynthesizer {
   /**
@@ -20,8 +21,38 @@ export class PainPointSynthesizer {
     const feedbackMap = new Map<string, Feedback>();
     feedbackList.forEach(f => feedbackMap.set(f.id, f));
 
+    // Resilience: If themes is empty but atoms exist, synthesize a core theme
+    if (themes.length === 0 && atoms.length > 0) {
+      const sampleTexts = atoms.slice(0, 10).map(a => a.atomText);
+      const aiOutput = await AIClient.synthesizeTheme(sampleTexts, workspaceId, jobId);
+      const fallbackTheme: Theme = {
+        id: `theme-${Date.now()}-core`,
+        workspaceId,
+        name: aiOutput.name || 'Core Product Feedback',
+        description: aiOutput.description || 'Customer operational feedback and friction points',
+        atomCount: atoms.length,
+        confidence: atoms.length >= 5 ? 'high' : 'medium',
+        status: 'active',
+        topKeywords: aiOutput.topKeywords,
+        sentimentBreakdown: { positive: 33, neutral: 33, negative: 34 },
+        atomIds: atoms.map(a => a.id),
+        pipelineVersion: PIPELINE_VERSION,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      themes.push(fallbackTheme);
+      await IntelligenceRepo.saveThemes(themes);
+    }
+
     for (const theme of themes) {
-      const themeAtoms = atoms.filter(a => theme.atomIds.includes(a.id));
+      let themeAtoms = atoms.filter(a => theme.atomIds && theme.atomIds.includes(a.id));
+      if (themeAtoms.length === 0 && atoms.length > 0) {
+        const themeWords = theme.name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+        themeAtoms = atoms.filter(a => themeWords.some(w => a.atomText.toLowerCase().includes(w)));
+        if (themeAtoms.length === 0) {
+          themeAtoms = atoms;
+        }
+      }
       if (themeAtoms.length === 0) continue;
 
       // Deterministic Frequency

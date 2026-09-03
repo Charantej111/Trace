@@ -209,9 +209,44 @@ export class ProcessingOrchestrator {
 
       case 'classification': {
         const atoms = await FeedbackRepo.getAtomsByWorkspace(workspaceId);
-        const classified = atoms.map(atom => Classifier.classifyAtom(atom));
-        await FeedbackRepo.saveAtoms(classified);
-        stage.processedItems = stage.totalItems;
+        const feedbackList = await FeedbackRepo.getFeedbackByWorkspace(workspaceId);
+        const feedbackMap = new Map(feedbackList.map(f => [f.id, f]));
+
+        const classifiedAtoms: FeedbackAtom[] = [];
+        for (const atom of atoms) {
+          const parent = feedbackMap.get(atom.feedbackId);
+          const context = parent ? {
+            analysisText: parent.analysisText || parent.originalText,
+            rating: parent.rating,
+            appVersion: parent.appVersion,
+            customerSegmentName: parent.customerSegmentName
+          } : undefined;
+
+          const item = ProcessingJobFactory.createItem({
+            stageId: stage.id,
+            jobId: job.id,
+            entityType: 'atom',
+            entityId: atom.id
+          });
+          item.status = 'processing';
+          await ProcessingJobRepo.saveItem(item);
+
+          try {
+            const classified = await Classifier.classifyAtom(atom, context, job.id);
+            classifiedAtoms.push(classified);
+            item.status = 'completed';
+          } catch (e: unknown) {
+            const err = e as Error;
+            item.status = 'failed';
+            item.error = err.message;
+            stage.failedItems++;
+            classifiedAtoms.push(atom);
+          }
+          await ProcessingJobRepo.saveItem(item);
+          stage.processedItems++;
+        }
+
+        await FeedbackRepo.saveAtoms(classifiedAtoms);
         break;
       }
 

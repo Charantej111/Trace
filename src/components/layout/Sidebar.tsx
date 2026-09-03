@@ -10,7 +10,8 @@ import {
   History,
   Database,
   Sliders,
-  Settings
+  Settings,
+  ShieldCheck
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 import { getVerifiedAtoms } from '@/lib/evidence-utils';
@@ -18,7 +19,7 @@ import { getVerifiedAtoms } from '@/lib/evidence-utils';
 export function Sidebar() {
   const location = useLocation();
   const pathname = location.pathname;
-  const { feedbackList, opportunities, roadmapItems, decisions } = useTraceStore();
+  const { workspace, feedbackList, opportunities, roadmapItems, decisions } = useTraceStore();
 
   const suggestedOppsCount = opportunities.filter(o => o.status === 'suggested').length;
   const criticalFeedCount = feedbackList.filter(f => getVerifiedAtoms(f).some(a => a.severity === 'critical')).length;
@@ -28,6 +29,7 @@ export function Sidebar() {
       label: 'WORKSPACE',
       items: [
         { name: 'Overview', href: '/', icon: LayoutDashboard },
+        { name: 'Audit', href: '/audit', icon: ShieldCheck },
         {
           name: 'Inbox',
           href: '/inbox',
@@ -159,14 +161,13 @@ export function Sidebar() {
                   Product Lead
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-[#64748B] truncate font-mono mt-0.5">
-                  Acme Inc.
+                  {workspace.name || 'Default Workspace'}
                 </p>
               </div>
             </div>
             <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:text-[#64748B] dark:group-hover:text-[#EDEDED] transition-colors" />
           </Link>
         </div>
-
       </div>
     </aside>
   );

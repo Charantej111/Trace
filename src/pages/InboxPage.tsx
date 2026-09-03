@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useTraceStore } from '@/lib/store';
 import { Feedback } from '@/types/trace';
+import { getStageHumanLabel } from '@/lib/stage-utils';
 import { FeedbackDetailDrawer } from '@/components/feedback/FeedbackDetailDrawer';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import {
@@ -247,18 +248,15 @@ export function InboxPage() {
 
       {/* Live Processing Indicator */}
       {isProcessing && (
-        <div className="p-3.5 rounded-xl surface-card border border-emerald-500/30 flex items-center justify-between gap-3 animate-pulse">
+        <div className="p-3.5 rounded-xl surface-card border border-emerald-500/30 flex items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-center gap-2.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-              Processing batch... Executing stage:{' '}
-              <span className="capitalize">
-                {activeStage?.stage.replace(/_/g, ' ') || 'Processing'}
-              </span>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              {getStageHumanLabel(activeStage?.stage)}
             </span>
           </div>
           <span className="text-[11px] font-mono text-slate-400 dark:text-[#8C92A4]">
-            {activeStage ? `${activeStage.processedItems}/${activeStage.totalItems} items` : 'Running'}
+            {activeStage ? `${activeStage.processedItems} of ${activeStage.totalItems} records` : 'In progress'}
           </span>
         </div>
       )}
@@ -436,15 +434,22 @@ export function InboxPage() {
                     verifiedAtoms.map((atom) => (
                       <span
                         key={atom.id}
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold flex items-center gap-1 max-w-xs truncate ${
                           atom.intent === 'bug_report'
                             ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/60'
                             : atom.intent === 'feature_request'
                             ? 'bg-slate-100 dark:bg-[#181B22] text-[#2E8B75] dark:text-[#10B981] border border-slate-200 dark:border-[#232833]'
                             : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/80 dark:border-amber-900/60'
                         }`}
+                        title={atom.atomText}
                       >
-                        {atom.intent.replace('_', ' ')} · {atom.severity}
+                        <span className="capitalize">{atom.intent.replace('_', ' ')}</span>
+                        <span className="text-slate-400 dark:text-[#64748B]">·</span>
+                        <span className="uppercase text-[9px]">{atom.severity}</span>
+                        <span className="text-slate-400 dark:text-[#64748B]">·</span>
+                        <span className="italic truncate text-slate-700 dark:text-[#EDEDED]">
+                          "{atom.atomText.length > 24 ? atom.atomText.slice(0, 24) + '…' : atom.atomText}"
+                        </span>
                       </span>
                     ))
                   ) : (
