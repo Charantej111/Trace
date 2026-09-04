@@ -230,7 +230,7 @@ export function TraceStoreProvider({ children }: { children: React.ReactNode }) 
             if (Array.isArray(parsed.feedbackList) && parsed.feedbackList.length > 0) {
               const cleanFeedback = parsed.feedbackList.filter((f: Feedback) =>
                 !f.customerName?.toLowerCase().startsWith('test') &&
-                !f.text?.toLowerCase().startsWith('test ')
+                !(f.originalText || (f as unknown as { text?: string }).text)?.toLowerCase().startsWith('test ')
               );
               cachedFeedbackList = cleanFeedback;
               // Preload in-memory stores so data is immediately accessible
